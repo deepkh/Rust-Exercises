@@ -19,25 +19,47 @@ build_lib() {
 	fi
 }
 
-cross_build_mingw_w64() {
+_build() {
+	build_lib
+	cargo build --target ${TARGET_PLATFORM} ${RELEASE}
+}
+
+_build_mingw_w64() {
 	IS_MINGW_W64=1
 	CROSSCOMPILER=x86_64-w64-mingw32-
-	build_lib
-	cargo build --target x86_64-pc-windows-gnu
+	TARGET_PLATFORM="x86_64-pc-windows-gnu"
+	_build
 }
 
-build_host() {
-	build_lib
-	cargo build
+dev_mingw_w64() {
+	_build_mingw_w64
 }
 
-build() {
-	build_host
-	cross_build_mingw_w64
+release_mingw_w64() {
+	RELEASE="--release"
+	_build_mingw_w64
 }
 
-run_host() {
+_build_linux_x86_64() {
+	TARGET_PLATFORM="x86_64-unknown-linux-gnu"
+	_build
+}
+
+dev() {
+	_build_linux_x86_64
+}
+
+release() {
+	RELEASE="--release"
+	_build_linux_x86_64
+}
+
+run() {
 	LD_LIBRARY_PATH=`pwd` ./target/debug/import_library_from_c
+}
+
+run_mingw_w64() {
+	LD_LIBRARY_PATH=`pwd` ./target/x86_64-pc-windows-gnu/debug/import_library_from_c.exe
 }
 
 clean() {
