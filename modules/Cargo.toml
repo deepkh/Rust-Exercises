@@ -1,0 +1,18 @@
+[package]
+name = "modules"
+version = "0.1.0"
+authors = ["deepkh <deepkh@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "modules"
+path = "src/lib.rs"
+crate-type = ["rlib"]#, "staticlib", "cdylib"]
+
+[[bin]]
+name = "modules"
+path = "src/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
