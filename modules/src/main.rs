@@ -1,4 +1,5 @@
 pub mod test;
+pub mod test2;
 pub mod server;
 
 mod main {
