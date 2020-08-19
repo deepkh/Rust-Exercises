@@ -23,7 +23,17 @@ macro_rules! log {
                 fmt = fmt.replacen("{}", &$args.to_string(), 1);
             }
         )*
-        println!("[{}] {}", crate::function!(), fmt);
+        print!("[{}] {}", crate::function!(), fmt);
         c
     }}
+}
+
+pub fn type_of<T>(_: &T) -> String {
+    //println!("{}", std::any::type_name::<T>())
+    return  String::from(std::any::type_name::<T>());
+}
+
+
+pub fn help() {
+    crate::log!("Hello\n");
 }
