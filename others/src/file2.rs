@@ -1,4 +1,4 @@
-use crate::log;
+use libhelper::*;
 use crate::ErrStack;
 use std::fs::File;
 use std::io;
@@ -39,12 +39,16 @@ fn open_and_read(file_name: &str) -> io::Result<String>
         return Err(ErrStack!(e, "failed to read {}", file_name));
     }
 
+    if 0 != 1 {
+        return Err(Error::new(ErrorKind::Other, "FAKE ERROR"));
+    }
     Ok(str)
 }
 
 pub fn test() -> io::Result<()> {
     let file_name = "file_test2.txt";
     log!("\n");
+    libhelper::log!("PPPPPPPPPPPPPPPP\n");
 
     if let Err(e) = create_and_write(file_name) {
         return Err(ErrStack!(e, "failed to create_and_write"));

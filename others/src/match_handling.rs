@@ -1,4 +1,4 @@
-use crate::log;
+use libhelper::*;
 
 //https://doc.rust-lang.org/std/io/type.Result.html
 //https://doc.rust-lang.org/std/result/enum.Result.html
@@ -49,7 +49,6 @@ fn match_handling_test_2(i: u32) -> std::result::Result<String, String>
 }
 
 pub fn test() {
-    crate::helper::help();
     log!("Hello {}\n", 1);
     match_handling_test_1();
 
