@@ -41,7 +41,11 @@ macro_rules! ErrStack {
                 fmt = fmt.replacen("{}", &$args.to_string(), 1);
             }
         )*
-        std::io::Error::new($e.kind(), format!("\t{} \n\t({}:{}) {}", $e.to_string(),  crate::function!(), line!(), fmt))
+        let mut errmsg = $e.to_string();
+        if errmsg.find("> ").is_none() {
+            errmsg = format!("\n> {}", errmsg);
+        }
+        std::io::Error::new($e.kind(), format!("{} \n> ({}:{}) {}", errmsg,  crate::function!(), line!(), fmt))
     }};
 }
 

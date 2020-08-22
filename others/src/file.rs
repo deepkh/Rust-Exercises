@@ -51,9 +51,10 @@ fn open_test(file_name: &str) -> std::io::Result<()>
 }
 
 pub fn test() {
+    print!("\n------------ {} ------------\n", function!());
+
     let file_name = "file_test.txt";
-    //crate::helper::help();
-    log!("\n");
+
     //match open_test(file_name) {
       //  Ok(_) => {},
       //  Err(e) => panic!("XXXXX {:?}", e),

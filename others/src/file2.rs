@@ -39,16 +39,26 @@ fn open_and_read(file_name: &str) -> io::Result<String>
         return Err(ErrStack!(e, "failed to read {}", file_name));
     }
 
-    if 0 != 1 {
-        return Err(Error::new(ErrorKind::Other, "FAKE ERROR"));
-    }
     Ok(str)
 }
 
+fn do_fake_error() -> io::Result<()> 
+{
+    if 0 != 1 {
+        return Err(ErrStack!(
+            Error::new(ErrorKind::Other, "FAKE ERR: No such file or directory (os error 2)")
+            , "failed to xxxx"
+        ));
+    }
+
+    Ok(())
+}
+
 pub fn test() -> io::Result<()> {
+    print!("\n------------ {} ------------\n", function!());
+
     let file_name = "file_test2.txt";
-    log!("\n");
-    libhelper::log!("PPPPPPPPPPPPPPPP\n");
+
 
     if let Err(e) = create_and_write(file_name) {
         return Err(ErrStack!(e, "failed to create_and_write"));
@@ -60,5 +70,10 @@ pub fn test() -> io::Result<()> {
     };
 
     log!("read: '{}'\n", s);
+
+    if let Err(e) = do_fake_error() {
+        return Err(ErrStack!(e, "failed to do_fake_error"));
+    }
+
     Ok(())
 }

@@ -49,7 +49,8 @@ fn match_handling_test_2(i: u32) -> std::result::Result<String, String>
 }
 
 pub fn test() {
-    log!("Hello {}\n", 1);
+    print!("\n------------ {} ------------\n", function!());
+
     match_handling_test_1();
 
     match match_handling_test_2(0) {
