@@ -3,6 +3,7 @@ mod file;
 mod file2;
 mod match_handling;
 mod traits;
+mod box_;
 
 use traits::*;
 
@@ -38,5 +39,9 @@ fn main() {
     //use Complex
     let c1 = Complex::new(99.2, 98.3);
     dump_string(&c1);
+    
+   
+    /** box test */
+    crate::box_::test();
 
 }

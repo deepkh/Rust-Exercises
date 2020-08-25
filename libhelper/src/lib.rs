@@ -1,4 +1,4 @@
-mod helper;
+pub mod helper;
 
 #[no_mangle]
 pub extern fn rust_function_a() {

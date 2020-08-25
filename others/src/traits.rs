@@ -137,12 +137,10 @@ fn complex_counter_inc() -> i32 {
 
 impl Complex {
     pub fn new(r: f64, i: f64) -> Complex {
-        unsafe {
-            Complex {
-                name: format!("{}", complex_counter_inc()),
-                real: r,
-                imaginary: i,
-            }
+        Complex {
+            name: format!("{}", complex_counter_inc()),
+            real: r,
+            imaginary: i,
         }
     }
 }
