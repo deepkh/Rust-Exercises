@@ -218,6 +218,28 @@ pub fn test()  {
     option_box_test();
 
     {
+        let p: Box<SomeData3> = Box::new(SomeData3::new("Nice Marty Beard", 40));
+        let mut p2 = p.clone();
+
+        p2.name = p2.name.chars().rev().collect::<String>();
+        print!("{:?} {:?}\n", p, p2);
+    }
+
+    {
+        let mut p: Box<Vec<String>> = Box::new(Vec::new());
+        p.as_mut().push("A1".to_string());
+        p.as_mut().push("A2".to_string());
+        p.as_mut().push("A3".to_string());
+
+        let mut p2 = p.clone();         //deep clone data to a new address
+        p.as_mut()[0] = "B1".to_string();
+        
+        print!("{:?} \n", p);           //["B1", "A2", "A3"]
+        print!("{:?} \n", p2);          //["A1", "A2", "A3"]
+
+    }
+
+    {
         let mut p:Option<Box<SomeData3>> = Some(Box::new(SomeData3::new("Super Super Marty Beard", 37)));
 
         if let Err(s) = change_name(p.as_mut()) {

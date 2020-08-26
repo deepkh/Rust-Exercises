@@ -4,6 +4,7 @@ mod file2;
 mod match_handling;
 mod traits;
 mod box_;
+mod rc_;
 
 use traits::*;
 
@@ -13,12 +14,19 @@ fn main() {
 
     libhelper::rust_function_a();
     libhelper::log!("XXXX\n");
+    
+    /** match_handling test */
     crate::match_handling::test();
+
+    /** file test */
     crate::file::test();
+    
+    /** file2 test */
     if let Err(e) = crate::file2::test() {
         print!("{}\n", ErrStack!(e, "failed to crate::file2::test()").to_string());
     };
 
+    /** traits test */
     crate::traits::test();
 
     print!("\n------------ {} use traits from main module ------------\n", function!());
@@ -40,8 +48,11 @@ fn main() {
     let c1 = Complex::new(99.2, 98.3);
     dump_string(&c1);
     
-   
     /** box test */
     crate::box_::test();
+    
+    /** rc test */
+    crate::rc_::test();
 
+    print!("\n------------ {} done ------------\n", function!());
 }
