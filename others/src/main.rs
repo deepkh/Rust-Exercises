@@ -5,6 +5,7 @@ mod match_handling;
 mod traits;
 mod box_;
 mod rc_;
+mod closure;
 
 use traits::*;
 
@@ -53,6 +54,9 @@ fn main() {
     
     /** rc test */
     crate::rc_::test();
+    
+    /** closure test */
+    crate::closure::test();
 
     print!("\n------------ {} done ------------\n", function!());
 }
