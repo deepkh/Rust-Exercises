@@ -4,6 +4,9 @@ use std::fs::File;
 use std::io;
 use std::io::{Error,ErrorKind};
 use std::io::prelude::*;
+use std::rc::Rc;
+use std::cell::Cell;
+use std::cell::RefCell;
 
 /***********************************************************
  * iter_filter_test
@@ -85,8 +88,8 @@ pub fn closure_fn_test() {
 /***********************************************************
  * closure_test
  ***********************************************************/
-struct S1 {
-    v: i32,
+pub struct S1 {
+    pub v: i32,
 }
 
 fn new_s1(v: i32) -> S1 {
@@ -137,10 +140,11 @@ pub fn closure_test() {
     //multi-line
     {
         let mut y = 10;
+        let w = 99;
         let z = |x| {
             x + y + 1
         };
-        print!("z = {}\n", z(20));          // z = 20 + 10 + 1 = 31
+        print!("z = {} w = {}\n", z(20), w);          // z = 20 + 10 + 1 = 31, w = 99
     }
 
     //y = 123 -> error[E0506]: cannot assign to `y` because it is borrowed
@@ -166,6 +170,47 @@ pub fn closure_test() {
         let z = move |x| format!("{}", x + y.get()); 
         y.set(456); 
         print!("z = {}, y = {}\n", z(20), y.get());        // z = 30, y = 456
+    }
+
+    //use borrow, this is ok because 'f(1)' is prior then 'print...x'
+    {
+        let mut x = 99;
+        let mut f = |y| x+=y;
+        f(1);
+        print!("x = {}\n", x);      //x = 99 + 1 = 100
+    }
+
+    //use box with borrow
+    {
+        let mut x: Box<S1> = Box::new(new_s1(999));
+        let mut y = |z| x.v += z;
+        y(1);
+        print!("x.v = {}\n", x.v);      //x = 999 + 1 = 1000
+    }
+
+    //use box with move
+    //{
+        //let mut x: Box<S1> = Box::new(new_s1(998));
+        //let mut y = move |z| x.v += z;
+        //y(1);
+        //print!("x.v = {}\n", x.v);          //error[E0382]: borrow of moved value: `x`
+    //}
+
+    //use rc with borrow
+    {
+        let mut x: Rc<RefCell<S1>> = Rc::new(RefCell::new(new_s1(996)));
+        let mut y = |z| x.borrow_mut().v += z;
+        y(1);
+        print!("x.v = {}\n", x.borrow().v);      //x = 996 + 1 = 997
+    }
+
+    //use rc with move
+    {
+        let mut x: Rc<RefCell<S1>> = Rc::new(RefCell::new(new_s1(995)));
+        let mut w = x.clone();                                          //use temp w and add reference from x
+        let mut y = move |z| w.borrow_mut().v += z;
+        y(1);
+        print!("x.v = {}\n", x.borrow().v);      //x = 995 + 1 = 996
     }
 }
 
