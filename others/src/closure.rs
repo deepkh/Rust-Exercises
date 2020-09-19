@@ -48,42 +48,106 @@ pub fn function_pointer_test(ofp: Option<&dyn Fn(&str) -> String>) {
 /***********************************************************
  * closure_fnmut_test
  ***********************************************************/
-fn call_multitimes_with_read_write<F>(mut func: F)
+fn call_multitimes_with_read_write<F>(mut f: &mut F)
     where F: FnMut()
 {
-    func();
-    func();
+    f();
+    f();
+}
+
+fn call_multitimes_with_read_write_dyn(mut f: &mut dyn FnMut())
+{
+    f();
+    f();
 }
 
 pub fn closure_fnmut_test() {
     print!("\n------------ {} ------------\n", function!());
 
-    let mut x = 1;
-    let f = || x += 1;
-    call_multitimes_with_read_write(f);
-    log!("x = {}\n", x);        // x = 3
+    //FnMut: can call multiple times (mutable)
+    { 
+        let mut x = 1;
+        let mut f = || x += 1;
+        call_multitimes_with_read_write(&mut f);
+        call_multitimes_with_read_write_dyn(&mut f);
+        call_multitimes_with_read_write_dyn(&mut || x+=1);
+        log!("x = {}\n", x); //7
+    }
+
+    // move closure: writable closure look like use Move
+    {
+        let mut x = 1;
+        let mut f = || x += 1;
+        let mut y = f;
+        //f();                //error[E0382]: borrow of moved value: `f`
+        y();
+    }
+
+    // borrow (mutable) reference
+    {
+        let mut x = 1;
+        let mut f = || x += 1;
+        
+        let y = &mut f;
+        y();
+
+        f();
+        print!("x={}\n", x);            //x=3
+    }
 }
 
 
 /***********************************************************
- * closure_fn_test
+ * closure_fn_test2
  ***********************************************************/
-fn call_multitimes_with_read_only<F>(func: F) -> usize
-    where F: Fn(usize) -> usize
+fn call_multitimes_with_read_only2<F>(f: F) -> i32
+    where F: Fn(i32, i32) -> i32
 {
-    func(1);
-    func(1)
+    let a = f(1,1);
+    f(1, a)
 }
 
-pub fn closure_fn_test() {
+fn call_multitimes_with_read_only2_dyn(f: &dyn Fn(i32, i32) -> i32) -> i32
+{
+    let a = f(1,1);
+    f(1, a)
+}
+
+pub fn closure_fn_test2() {
     print!("\n------------ {} ------------\n", function!());
 
-    let f = |x| x + 1;
-    let z = call_multitimes_with_read_only(f);
-    log!("z = 1 + 1 = {}\n", z);
+    // Fn: can call multiple times (readonly)
+    {
+        let f = |x,y| x + y;
+        let z = call_multitimes_with_read_only2(f);
+        let w = call_multitimes_with_read_only2_dyn(&f);
+        let h = call_multitimes_with_read_only2_dyn(&|x,y| x + y);
+        log!("z={} w={} h={}\n", z, w, h);
+    }
+
+    // copy closure: read only closure look like use Copy
+    {
+        let x: i32 = 123;
+        let f = |y: i32| x + y;
+        let y = f;
+        f(456);
+        y(123);
+    }
+
+    // borrow reference
+    {
+        let x: i32 = 123;
+        let f = |y: i32| x + y;
+        let y = &f;
+        y(123);
+        f(456);
+    }
 }
 
 
+/***********************************************************
+ * closure_test
+ ***********************************************************/
 pub fn closure_test() {
     print!("\n------------ {} ------------\n", function!());
 
@@ -165,7 +229,7 @@ pub fn closure_test() {
 pub fn test() {
     print!("\n------------ {} ------------\n", function!());
     closure_test();
-    closure_fn_test();
+    closure_fn_test2();
     closure_fnmut_test();
     
     function_pointer_test(Some(&some_func));
