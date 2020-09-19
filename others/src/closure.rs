@@ -84,133 +84,80 @@ pub fn closure_fn_test() {
 }
 
 
-
-/***********************************************************
- * closure_test
- ***********************************************************/
-pub struct S1 {
-    pub v: i32,
-}
-
-fn new_s1(v: i32) -> S1 {
-    return S1 { v }; 
-}
-
-impl S1 {
-    pub fn get(&self) -> i32 {
-        self.v
-    }
-    
-    pub fn set(&mut self, v: i32)  {
-        self.v = v;
-    }
-}
-
-
-//the Copy derive only the member all implements Copy derive
-#[derive(Debug, Clone, Copy)]
-pub struct S2 {
-    pub v: i32,
-}
-
-fn new_s2(v: i32) -> S2 {
-    return S2 { v }; 
-}
-
-impl S2 {
-    pub fn get(&self) -> i32 {
-        self.v
-    }
-    
-    pub fn set(&mut self, v: i32)  {
-        self.v = v;
-    }
-}
-
 pub fn closure_test() {
     print!("\n------------ {} ------------\n", function!());
-   
-    //one line
+
+    // default behavior: borrow (reference)
     {
-        let mut y = 10;
-        let z = |x| x + y + 1;
-        print!("z = {}\n", z(20));          // z = 20 + 10 + 1 = 31
+        //borrow
+        {
+            let mut a: i32 = 123;
+            let f = |b| a + b;
+            //a = 789;                  //error[E0506]: cannot assign to `a` because it is borrowed
+            let f_result = f(456);
+            a = 789;                    //assign value to a is ok when after f(456)
+            print!("a:{} f_result:{}\n", a, f_result);
+        }
+
+        //borrow with mutable
+        {
+            #[derive(Debug)]        
+            struct Data {
+                a: String,
+                b: i32,
+            }
+
+            let mut a: Data = Data {a:"AAA".to_string(), b:123};
+            let mut f = |b| {
+                a.a.push_str(b);
+            };
+            f("BBB");
+            print!("a {:?}\n", a);
+        }
     }
 
-    //multi-line
+    // move behavior: try copy first. if copy is fails than try use move
     {
-        let mut y = 10;
-        let w = 99;
-        let z = |x| {
-            x + y + 1
-        };
-        print!("z = {} w = {}\n", z(20), w);          // z = 20 + 10 + 1 = 31, w = 99
-    }
+        //copy
+        {
+            let mut a: i32 = 123;
+            let f = move |b| a + b;
+            a = 789;                  //this is ok
+            let f_result = f(456);
+            print!("a:{} f_result:{}\n", a, f_result);
+        }
 
-    //y = 123 -> error[E0506]: cannot assign to `y` because it is borrowed
-    //{
-        //let mut y = 10;
-        //let z = |x| x + y + 1;
-        //y = 123;                          //error[E0506]: cannot assign to `y` because it is borrowed
-        //print!("z = {}\n", z(20));        // z = 20 + 10 + 1 = 31
-    //}
+        //move
+        {
+            #[derive(Debug)]        
+            struct Data {
+                a: String,
+                b: i32,
+            }
 
-    //move1: use move key word to copy or move. eg., try copy first if ok. try move second if copy failed.
-    {
-        let mut y = 10;
-        let z = move |x| x + y + 1;
-        y = 123;
-        print!("z = {}, y = {}\n", z(20), y);        // z = 20 + 10 + 1 = 31, y = 123
-    }
+            let mut a: Data = Data {a:"AAA".to_string(), b:123};
+            let mut f = move |b| {
+                a.a.push_str(b);
+            };
+            f("BBB");
+            //a.a = "CCC".to_string();    //error[E0382]: assign to part of moved value: `a`
+        }
 
-    //move2: struct that implements copy. if struct doesn't implements copy it will use move
-    //instead and will cause error[E0506] occured in this case.
-    {
-        let mut y = new_s2(10);
-        let z = move |x| format!("{}", x + y.get()); 
-        y.set(456); 
-        print!("z = {}, y = {}\n", z(20), y.get());        // z = 30, y = 456
-    }
+        //copy
+        {
+            #[derive(Debug,Clone,Copy)]        
+            struct Data {
+                a: i32,
+                b: i32,
+            }
 
-    //use borrow, this is ok because 'f(1)' is prior then 'print...x'
-    {
-        let mut x = 99;
-        let mut f = |y| x+=y;
-        f(1);
-        print!("x = {}\n", x);      //x = 99 + 1 = 100
-    }
-
-    //use box with borrow
-    {
-        let mut x: Box<S1> = Box::new(new_s1(999));
-        let mut y = |z| x.v += z;
-        y(1);
-        print!("x.v = {}\n", x.v);      //x = 999 + 1 = 1000
-    }
-
-    //use box with move
-    //{
-        //let mut x: Box<S1> = Box::new(new_s1(998));
-        //let mut y = move |z| x.v += z;
-        //y(1);
-        //print!("x.v = {}\n", x.v);          //error[E0382]: borrow of moved value: `x`
-    //}
-
-    //use rc with borrow
-    {
-        let mut x: Rc<RefCell<S1>> = Rc::new(RefCell::new(new_s1(996)));
-        let mut y = |z| x.borrow_mut().v += z;
-        y(1);
-        print!("x.v = {}\n", x.borrow().v);      //x = 996 + 1 = 997
-    }
-
-    //use rc with move
-    {
-        let mut x: Rc<RefCell<S1>> = Rc::new(RefCell::new(new_s1(995)));
-        let mut w = x.clone();                                          //use temp w and add reference from x
-        let mut y = move |z| w.borrow_mut().v += z;
-        y(1);
-        print!("x.v = {}\n", x.borrow().v);      //x = 995 + 1 = 996
+            let mut a: Data = Data {a:123, b:456};
+            let mut f = move |b| {
+                a.a = b;
+            };
+            a.a = 123;                      //this is ok before f(789). because a is use Copy
+            f(789);
+        }
     }
 }
 
