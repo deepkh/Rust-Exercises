@@ -1,4 +1,5 @@
 use libhelper::*;
+use libhelper::helper::type_of;
 use crate::ErrStack;
 use std::fs::File;
 use std::io;
@@ -151,6 +152,44 @@ pub fn test() {
             a.a = "BBB".to_string();
             c.a = "CCC".to_string();
             print!("a {:?} c {:?}\n", a, c); //a Data { a: "BBB", b: 123 } c Data { a: "CCC", b: 123 }
+        }
+    }
+    
+    
+    // borrow reference & deref
+    {
+        // Copy
+        {
+            #[derive(Debug, Copy, Clone)]        
+            struct Data {
+                a: i32,
+                b: i32,
+            }
+            
+            let mut p:Data = Data{a:123, b:456};
+            let mut p1 = &mut p;
+            let mut p2 = *p1;           //this is copy
+           
+            p1.a = 789;
+            p2.a = 369;
+
+            print!("\np1:{:?}  type_of:{}\n", p1, type_of(&p1)); //p1:Data { a: 789, b: 456 }  type_of:&mut others::copy_move_clone::test::Data
+            print!("p2:{:?}  type_of:{}\n", p2, type_of(&p2));   //p2:Data { a: 369, b: 456 }  type_of:others::copy_move_clone::test::Data
+        }
+
+        // No impl Copy 
+        {
+            #[derive(Debug, Clone)]        
+            struct Data {
+                a: String,
+                b: i32,
+            }
+
+            let mut p:Data = Data{a:"123".to_string(), b:456};
+            let p1 = &p;
+            //let p2 = *p1;         //this is copy
+                                    //error[E0507]: cannot move out of `*p1` which is behind a shared reference
+                                    //move occurs because `*p1` has type `copy_move_clone::test::Data`, which does not implement the `Copy` trait
         }
     }
 }

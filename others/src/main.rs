@@ -7,6 +7,7 @@ mod box_;
 mod rc_;
 mod closure;
 mod copy_move_clone;
+mod box2;
 
 use traits::*;
 
@@ -61,6 +62,9 @@ fn main() {
     
     /** copy_move_clone test */
     crate::copy_move_clone::test();
+    
+    /** box2 test */
+    crate::box2::test();
 
     print!("\n------------ {} done ------------\n", function!());
 }
