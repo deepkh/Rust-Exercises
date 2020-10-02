@@ -41,7 +41,7 @@ pub fn test() {
             //a.push_str("BBB"); //error[E0382]: borrow of moved value: `a`
         }
 
-        // Move
+        // Move: no impl copy
         {
             #[derive(Debug)]        
             struct Data {
@@ -55,7 +55,7 @@ pub fn test() {
             //let c = a.clone();                        //method not found in `copy_move_clone::test::Data`
         }
 
-        // Copy: implement Copy, Clone manually
+        // Copy: impl copy manually 
         {
             #[derive(Debug)]        
             struct Data {
@@ -77,10 +77,10 @@ pub fn test() {
             let b = a;                              //this is Copy
             a.a = 456;
             a.b = 123;
-            let c = a.clone();
+            let c = a.clone();                      //this same as copy in this case
         }
 
-        // Copy: implement Copy, Clone  by use derive
+        // Copy: impl copy by use derive, Clone  
         {
             //Clone is a supertrait of Copy, so everything member variables which is Copy must also implement Clone
             //in this case the copy behavior is same as clone
@@ -94,7 +94,7 @@ pub fn test() {
             let b = a;
             a.a = 456;
             a.b = 123;
-            let c = a.clone();
+            let c = a.clone();                      //this same as copy in this case
         }
     }
 
@@ -107,7 +107,7 @@ pub fn test() {
             a.push_str("BBB");
         }
 
-        //Clone: implement Clone manually
+        //Clone: impl clone manually
         {
             #[derive(Debug)]        
             struct Data {
@@ -129,7 +129,7 @@ pub fn test() {
             }
 
             let mut a: Data = Data{a: "AAA".to_string(), b: 123};
-            //let b = a;
+            //let b = a;                      //this is move  
             //a.b = 456;                      //error[E0382]: assign to part of moved value: `a
             let mut c = a.clone();
             a.a = "BBB".to_string();
@@ -137,7 +137,7 @@ pub fn test() {
             print!("a {:?} c {:?}\n", a, c);    //clone occured a Data { a: "BBB", b: 123 } c Data { a: "CCC", b: 123 }
         }
 
-        //Clone: implement Clone use derive
+        //Clone: imple Clone by use derive
         {
             #[derive(Debug, Clone)]        
             struct Data {
@@ -146,7 +146,7 @@ pub fn test() {
             }
             
             let mut a: Data = Data{a: "AAA".to_string(), b: 123};
-            //let b = a;
+            //let b = a;                      //this is move
             //a.b = 456;                      //error[E0382]: assign to part of moved value: `a
             let mut c = a.clone();
             a.a = "BBB".to_string();
@@ -187,10 +187,31 @@ pub fn test() {
 
             let mut p:Data = Data{a:"123".to_string(), b:456};
             let p1 = &p;
-            //let p2 = *p1;         //this is copy
+            //let p2 = *p1;         //this is move
                                     //error[E0507]: cannot move out of `*p1` which is behind a shared reference
                                     //move occurs because `*p1` has type `copy_move_clone::test::Data`, which does not implement the `Copy` trait
         }
     }
+
+    //Conclusion:
+    // a. Impl copy or not
+    //     1. Data type impl copy
+    //         1. then the 'let x: Data = y' would be copy
+    //     2. Data type not impl copy
+    //         1. then the 'let x: Data = y' would be move
+    //
+    // b. Borrow & deref:
+    //      The following 'z = *x' behavior 
+    //         let x: Data = &y;
+    //         let z = *x;
+    //
+    //      would be something like as below
+    //          let x = z;
+    //
+    //      move or copy havior would depend on Data impl copy or not
+    //      but, if the Data not impl copy then always can't move due to
+    //      error[E0507]: can't move a shared references.
+    //      this means you can borrow a reference from a variable, but 
+    //      you can't move a reference from a borrowed reference.
 }
 
