@@ -16,7 +16,7 @@ struct Data3 {
 }
 
 //Box borrow & deref can
-//  1. replace the Data3 instance
+//  1. replace the Data3 to new instance
 //Box borrow also can
 //  1. change value of the Data3 member variable 
 fn box_deref(p: &mut Box<Data3>) {
@@ -103,7 +103,6 @@ pub fn test() {
             bb:Data { a: 999, b: 456 }  type_of:alloc::boxed::Box<others::box2::test::Data>
             bb:Data { a: 333, b: 456 }  type_of:alloc::boxed::Box<others::box2::test::Data>
             */
-
         }
 
 
@@ -283,5 +282,10 @@ pub fn test() {
         }
     }
 
+    //Conclusion:
+    //  Box means the thing inside is always heap allocated rather than potentially stack
+    //  allocated.
+    //  There are no null pointer in the rust lang. But can use Option<Box<Data>> instead. 
+    //  Use Box::clone can 1. create new heap space for T 2. deep copy src T to dst T
 }
 
