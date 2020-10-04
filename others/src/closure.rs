@@ -1,4 +1,5 @@
 use libhelper::*;
+use libhelper::helper::type_of;
 use crate::ErrStack;
 use std::fs::File;
 use std::io;
@@ -225,9 +226,16 @@ pub fn closure_test() {
     }
 }
 
-
 pub fn test() {
     print!("\n------------ {} ------------\n", function!());
+
+    let v = "AAAAAA".to_string();
+    let f = move || {
+        println!("Here's a vector: {:?}", v);
+    };
+
+    print!("f  type_of:{}\n", type_of(&f));
+    
     closure_test();
     closure_fn_test2();
     closure_fnmut_test();

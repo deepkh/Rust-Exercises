@@ -61,6 +61,16 @@ pub fn test() {
                 a: i32,
                 b: i32,
             }
+
+            #[derive(Debug, Clone, Copy)]        
+            struct DataG {
+                a: i32,
+                b: i32,
+            }
+            
+            let mut g:Box<DataG> = Box::new(DataG{a:123, b:456});
+            let mut g1 = *g;                //pass by value due to Copy already impled
+            g.a = 456;  
             
             let mut a:Box<Data> = Box::new(Data{a:123, b:456});
             let a1 = &a;
@@ -76,7 +86,9 @@ pub fn test() {
             let mut bb1 = bb.as_mut();
             bb1.a = 999;
 
-            print!("\na1:{:?}  type_of:{}\n", a1, type_of(&a1)); 
+            print!("\ng1:{:?}  type_of:{}\n", g1, type_of(&g1)); 
+            print!("g:{:?}  type_of:{}\n", g, type_of(&g)); 
+            print!("a1:{:?}  type_of:{}\n", a1, type_of(&a1)); 
             
             print!("aa1:{:?}  type_of:{}\n", aa1, type_of(&aa1));
             print!("aa:{:?}  type_of:{}\n", aa, type_of(&aa));
@@ -89,12 +101,8 @@ pub fn test() {
             print!("bb:{:?}  type_of:{}\n", bb, type_of(&bb));
 
             /*
-            a:Data3 { a: 369, b: 123 }  type_of:alloc::boxed::Box<others::box2::Data3>
-            a:Data3 { a: 999, b: 123 }  type_of:alloc::boxed::Box<others::box2::Data3>
-
-            a:Data3 { a: 333, b: 456 }  type_of:alloc::boxed::Box<others::box2::Data3>
-            a:Data3 { a: 999, b: 456 }  type_of:alloc::boxed::Box<others::box2::Data3>
-
+            g1:DataG { a: 123, b: 456 }  type_of:others::box2::test::DataG
+            g:DataG { a: 456, b: 456 }  type_of:alloc::boxed::Box<others::box2::test::DataG>
             a1:Data { a: 123, b: 456 }  type_of:&alloc::boxed::Box<others::box2::test::Data>
             aa1:Data { a: 888, b: 456 }  type_of:&mut alloc::boxed::Box<others::box2::test::Data>
             aa:Data { a: 888, b: 456 }  type_of:alloc::boxed::Box<others::box2::test::Data>
