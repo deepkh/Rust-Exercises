@@ -9,6 +9,7 @@ mod closure;
 mod copy_move_clone;
 mod box2;
 mod rc2;
+mod mutex_guard_;
 
 use traits::*;
 
@@ -70,5 +71,7 @@ fn main() {
     /** rc2 test */
     crate::rc2::test();
 
+    /** mutex_guard_ test */
+    crate::mutex_guard_::test();
     print!("\n------------ {} done ------------\n", function!());
 }
