@@ -10,6 +10,7 @@ mod copy_move_clone;
 mod box2;
 mod rc2;
 mod mutex_guard_;
+mod channel_;
 
 use traits::*;
 
@@ -73,5 +74,8 @@ fn main() {
 
     /** mutex_guard_ test */
     crate::mutex_guard_::test();
+    
+    /** channel_ test */
+    crate::channel_::test();
     print!("\n------------ {} done ------------\n", function!());
 }
