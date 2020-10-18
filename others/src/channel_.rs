@@ -165,32 +165,54 @@ pub fn test()  {
     //(main)send req -> (thd) recv req -> (thd) send rep -> (main)recv rep
     {
         #[derive(Debug)]
+        struct MessageData {
+            rep_send: Sender<i32>,
+            data: i32,
+        };
+
+        impl MessageData {
+            pub fn new(rep_send: Sender<i32>, data: i32) -> Self {
+                MessageData {
+                    rep_send, data
+                }
+            }
+        };
+
+        #[derive(Debug)]
         struct MessageQueue {
-            tx: Sender<(Sender<i32>,i32)>,
+            req_send: Sender<MessageData>,
             thread: Option<thread::JoinHandle<()>>, 
         };
 
         impl MessageQueue {
             pub fn new() -> Self {
 
-                let (tx, rx): (Sender<(Sender<i32>,i32)>, Receiver<(Sender<i32>,i32)>) = mpsc::channel();
+                let (req_send, req_recv): (Sender<MessageData>, Receiver<MessageData>) = mpsc::channel();
 
                 let thread = thread::spawn(move || {
-                    let rx = rx.recv().unwrap();
-                    print!("recv req {}\n", rx.1);
-                    print!("send rep {}\n", rx.1 + 100);
-                    rx.0.send(rx.1 + 100).unwrap();
+                    for x in 0..100 {
+                        let msg = req_recv.recv().unwrap();
+                        print!("recv req {}\n", msg.data);
+                        print!("send rep {}\n", msg.data);
+                        msg.rep_send.send(msg.data).unwrap();
+                    }
                 });
 
                 MessageQueue {
-                    tx:  tx.clone(),
+                    req_send:  req_send.clone(),
                     thread: Some(thread),
                 }
             }
 
-            //pub fn PostMessage(&self, msg: i32) {
-            //    self.tx.send(msg).unwrap();
-            //}
+            pub fn PostMessage(&self, msg: MessageData) {
+                self.req_send.send(msg);
+            }
+
+            pub fn PostMessageAndReply(&self, msg: i32) -> i32 {
+                let (rep_send, rep_recv): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+                self.PostMessage(MessageData::new(rep_send, msg));
+                rep_recv.recv().unwrap()
+            }
         }
 
         impl Drop for MessageQueue {
@@ -203,6 +225,13 @@ pub fn test()  {
         };
 
         let mq: MessageQueue = MessageQueue::new();
+        
+        for x in 0..100 {
+            print!("send req {}\n", x);
+            let n = mq.PostMessageAndReply(x);
+            print!("recv resp {}\n", n);
+        }
+        /*
         let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
         
         print!("send req 123\n");
@@ -210,7 +239,7 @@ pub fn test()  {
 
         let n = rx.recv().unwrap();
         print!("recv resp {}\n", n);
-
+        */
         //mq.PostMessage(1233333);
         //mq.PostMessage(1233333);
         //thread::sleep(Duration::from_secs(1));
