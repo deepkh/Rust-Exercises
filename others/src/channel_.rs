@@ -99,7 +99,7 @@ pub fn test()  {
         for i in 0..NUM_THREADS {
             let tx_clone = tx.clone();
             let thread = thread::spawn(move || {
-                thread::sleep(Duration::from_secs(1));
+                //thread::sleep(Duration::from_secs(1));
                 tx_clone.send(i as usize).unwrap();
             });
             //print!("thread:{:?} type_of:{}\n", thread, type_of(&thread));
@@ -149,7 +149,7 @@ pub fn test()  {
         for i in 0..NUM_THREADS {
             let tx_clone = tx.clone();
             let thread = thread::spawn(move || {
-                thread::sleep(Duration::from_secs(1));
+                //thread::sleep(Duration::from_secs(1));
                 tx_clone.send(i).unwrap();
             });
             workers.insert(i, Worker{index: i, handle: Some(thread)});
@@ -161,6 +161,61 @@ pub fn test()  {
         }
         print!("DONE\n");
     }
+
+    //(main)send req -> (thd) recv req -> (thd) send rep -> (main)recv rep
+    {
+        #[derive(Debug)]
+        struct MessageQueue {
+            tx: Sender<(Sender<i32>,i32)>,
+            thread: Option<thread::JoinHandle<()>>, 
+        };
+
+        impl MessageQueue {
+            pub fn new() -> Self {
+
+                let (tx, rx): (Sender<(Sender<i32>,i32)>, Receiver<(Sender<i32>,i32)>) = mpsc::channel();
+
+                let thread = thread::spawn(move || {
+                    let rx = rx.recv().unwrap();
+                    print!("recv req {}\n", rx.1);
+                    print!("send rep {}\n", rx.1 + 100);
+                    rx.0.send(rx.1 + 100).unwrap();
+                });
+
+                MessageQueue {
+                    tx:  tx.clone(),
+                    thread: Some(thread),
+                }
+            }
+
+            //pub fn PostMessage(&self, msg: i32) {
+            //    self.tx.send(msg).unwrap();
+            //}
+        }
+
+        impl Drop for MessageQueue {
+            fn drop(&mut self) {
+                if let Some(thread) = self.thread.take() {
+                    thread.join().unwrap();
+                    print!("~MessageQueue()  done\n");
+                }
+            }
+        };
+
+        let mq: MessageQueue = MessageQueue::new();
+        let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+        
+        print!("send req 123\n");
+        mq.tx.send((tx.clone(), 123)).unwrap();
+
+        let n = rx.recv().unwrap();
+        print!("recv resp {}\n", n);
+
+        //mq.PostMessage(1233333);
+        //mq.PostMessage(1233333);
+        //thread::sleep(Duration::from_secs(1));
+    }
+
 
 }
 
