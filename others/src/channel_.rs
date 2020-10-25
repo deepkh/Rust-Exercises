@@ -8,7 +8,7 @@ use std::io::prelude::*;
 use std::rc::Rc;
 use std::cell::Cell;
 use std::cell::RefCell;
-use std::sync::{Mutex, Arc, Condvar, MutexGuard, LockResult};
+use std::sync::{Mutex, Arc, Condvar, MutexGuard, LockResult, WaitTimeoutResult};
 use std::thread;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
@@ -278,8 +278,10 @@ pub fn test()  {
         a.DoA();
     }
 
-    print!("\n\n\n\n");
+    print!("\n");
 
+    //https://www.philipdaniels.com/blog/2020/self-cloning-for-multiple-threads-in-rust/
+    //https://github.com/PhilipDaniels/rtest/blob/master/rtest_core/src/thread_clutch.rs
     {
         #[derive(Debug)]
         struct MutexCondInner {
@@ -306,6 +308,11 @@ pub fn test()  {
             pub fn Wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
                 return self.cond.wait(started);
             }
+            
+            pub fn WaitTimeout<'a, T>(&self, started: MutexGuard<'a, T>, dur: Duration) 
+                -> LockResult<(MutexGuard<'a, T>, WaitTimeoutResult)> {
+                return self.cond.wait_timeout(started, dur);
+            }
         };
 
         #[derive(Debug, Clone)]
@@ -331,6 +338,11 @@ pub fn test()  {
             pub fn Wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
                 return self.inner.Wait(started);
             }
+            
+            pub fn WaitTimeout<'a, T>(&self, started: MutexGuard<'a, T>, dur: Duration) 
+                -> LockResult<(MutexGuard<'a, T>, WaitTimeoutResult)> {
+                return self.inner.WaitTimeout(started, dur);
+            }
         };
 
         let mut mcond = MutexCond::new();
@@ -338,19 +350,68 @@ pub fn test()  {
 
         thread::spawn(move|| {
             thread::sleep(Duration::from_millis(50));
-            print!("thd1 ready to lock\n");
-            let mut vec = mcond2.Lock();
-            (*vec).push("AAAA".to_string());
-            (*vec).push("BBB".to_string());
-            (*vec).push("CCC".to_string());
-            print!("thd1 ready to notify_one\n");
-            mcond2.NotifyOne();
-            print!("thd1 ready to notify_one done\n");
+            print!("thd 1 ready to lock\n");
+            {
+                let mut vec = mcond2.Lock();
+                (*vec).push("AAAA".to_string());
+                (*vec).push("BBB".to_string());
+                (*vec).push("CCC".to_string());
+                print!("thd1 ready to notify_one\n");
+                mcond2.NotifyOne();
+            }
+            
+            thread::sleep(Duration::from_millis(200));
+            print!("thd 2 ready to lock\n");
+            {
+                let mut vec = mcond2.Lock();
+                (*vec).push("DDD".to_string());
+                (*vec).push("EEE".to_string());
+                (*vec).push("FFF".to_string());
+                print!("thd1 ready to notify_one 2\n");
+                mcond2.NotifyOne();
+            }
+
+
+            for i in 3..6 {
+                print!("thd 3 ready to lock {}\n", i);
+                let mut vec = mcond2.Lock();
+                (*vec).push("GGG".to_string());
+                (*vec).push("HHH".to_string());
+                (*vec).push("III".to_string());
+                print!("thd 3 ready to notify_one {}\n", i);
+                mcond2.NotifyOne();
+            }
+            print!("thd  done\n");
         });
 
-        let mut strvec = mcond.Lock();
-        strvec = mcond.Wait(strvec).unwrap();
-        print!("*started:{:?} type_of:{}\n", *strvec, type_of(&*strvec));
+        {
+            print!("main 1 ready to lock\n");
+            let mut vec = mcond.Lock();
+            print!("main 1 *ret:{:?} type_of:{} A\n", *vec, type_of(&*vec));
+            //*vec:[] type_of:alloc::vec::Vec<alloc::string::String>
+            vec = mcond.Wait(vec).unwrap();
+            print!("main 1 *ret:{:?} type_of:{} B\n", *vec, type_of(&*vec));
+            //*ret:["AAAA", "BBB", "CCC"] type_of:alloc::vec::Vec<alloc::string::String>
+        }
+        
+        {
+            print!("main 2 ready to lock\n");
+            let mut vec = mcond.Lock();
+            vec = mcond.Wait(vec).unwrap();
+            print!("main 2 *vec:{:?} type_of:{}\n", *vec, type_of(&*vec));
+        }
+
+        while true {
+            print!("main 3 ready to lock with timeout\n");
+            let mut vec = mcond.Lock();
+            let mut ret = mcond.WaitTimeout(vec, Duration::from_millis(500)).unwrap();
+            if ret.1.timed_out() {
+                print!("main 3 wait 3 is timeout\n");
+                break;
+            }
+            print!("main *(ret.0):{:?} type_of:{}\n", *(ret.0), type_of(&*(ret.0)));
+        }
+
     }
 
     log!("done");
