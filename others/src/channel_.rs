@@ -8,7 +8,7 @@ use std::io::prelude::*;
 use std::rc::Rc;
 use std::cell::Cell;
 use std::cell::RefCell;
-use std::sync::{Mutex, Arc};
+use std::sync::{Mutex, Arc, Condvar, MutexGuard, LockResult};
 use std::thread;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
@@ -190,7 +190,7 @@ pub fn test()  {
                 let (req_send, req_recv): (Sender<MessageData>, Receiver<MessageData>) = mpsc::channel();
 
                 let thread = thread::spawn(move || {
-                    for x in 0..100 {
+                    for x in 0..10 {
                         let msg = req_recv.recv().unwrap();
                         print!("recv req {}\n", msg.data);
                         print!("send rep {}\n", msg.data);
@@ -219,32 +219,138 @@ pub fn test()  {
             fn drop(&mut self) {
                 if let Some(thread) = self.thread.take() {
                     thread.join().unwrap();
-                    print!("~MessageQueue()  done\n");
+                    print!("~MessageQueue()  done {}\n", self.thread.is_none());
                 }
             }
         };
 
         let mq: MessageQueue = MessageQueue::new();
         
-        for x in 0..100 {
+        for x in 0..10 {
             print!("send req {}\n", x);
             let n = mq.PostMessageAndReply(x);
             print!("recv resp {}\n", n);
         }
-        /*
-        let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
-        
-        print!("send req 123\n");
-        mq.tx.send((tx.clone(), 123)).unwrap();
-
-        let n = rx.recv().unwrap();
-        print!("recv resp {}\n", n);
-        */
-        //mq.PostMessage(1233333);
-        //mq.PostMessage(1233333);
-        //thread::sleep(Duration::from_secs(1));
     }
 
+    {
+        #[derive(Debug)]
+        struct B {
+            data: i32,
+        };
 
+        impl B {
+            pub fn new(data: i32) -> Self {
+                B {
+                    data
+                }
+            }
+
+            pub fn DoB(&mut self) {
+                self.data = self.data + 100;
+                print!("DoB() {}\n", self.data);
+            }
+        };
+
+        #[derive(Debug)]
+        struct A {
+            b: Option<B>
+        };
+
+        impl A {
+            pub fn new(data: i32) -> Self {
+                A {
+                    b: Some(B::new(data))
+                }
+            }
+
+            pub fn DoA(&mut self) {
+                if self.b.is_some() {
+                    self.b.as_mut().unwrap().DoB();
+                }
+            }
+        };
+
+        let mut a: A = A::new(123);
+        a.DoA();
+        a.DoA();
+        a.DoA();
+        a.DoA();
+    }
+
+    {
+        #[derive(Debug)]
+        struct MutexCondInner {
+            mutex: Mutex<bool>,
+            cond: Condvar,
+        };
+
+        impl MutexCondInner {
+            pub fn new() -> Self {
+                Self {
+                    mutex: Mutex::new(false),
+                    cond: Condvar::new(),
+                }
+            }
+
+            pub fn Lock(&self) -> MutexGuard<bool> {
+                return self.mutex.lock().unwrap();
+            }
+            
+            pub fn NotifyOne(&self) {
+                self.cond.notify_one();
+            }
+
+            pub fn Wait<'a, bool>(&self, started: MutexGuard<'a, bool>) -> LockResult<MutexGuard<'a, bool>> {
+                return self.cond.wait(started);
+            }
+        };
+
+        #[derive(Debug, Clone)]
+        struct MutexCond {
+            inner: Arc<MutexCondInner>,
+        };
+
+        impl MutexCond {
+            pub fn new() -> Self {
+                Self {
+                    inner: Arc::new(MutexCondInner::new()),
+                }
+            }
+
+            pub fn Lock(&self) -> MutexGuard<bool> {
+                return self.inner.Lock();
+            }
+
+            pub fn NotifyOne(&self) {
+                self.inner.NotifyOne();
+            }
+
+            pub fn Wait<'a, bool>(&self, started: MutexGuard<'a, bool>) -> LockResult<MutexGuard<'a, bool>> {
+                return self.inner.Wait(started);
+            }
+        };
+
+        let mut mcond = MutexCond::new();
+        let mut mcond2 = mcond.clone();
+
+        thread::spawn(move|| {
+            print!("thd1 ready to lock\n");
+            let mut started = mcond2.Lock();
+            *started = true;
+            print!("thd1 ready to notify_one\n");
+            mcond2.NotifyOne();
+            print!("thd1 ready to notify_one done\n");
+        });
+
+        let mut started = mcond.Lock();
+        while !*started {
+            started = mcond.Wait(started).unwrap();
+            print!("*started:{:?} type_of:{}\n", *started, type_of(&*started));
+        }
+       
+    }
+
+    log!("done");
 }
 
