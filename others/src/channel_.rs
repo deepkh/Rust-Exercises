@@ -278,22 +278,24 @@ pub fn test()  {
         a.DoA();
     }
 
+    print!("\n\n\n\n");
+
     {
         #[derive(Debug)]
         struct MutexCondInner {
-            mutex: Mutex<bool>,
+            mutex: Mutex<Vec<String>>,
             cond: Condvar,
         };
 
         impl MutexCondInner {
             pub fn new() -> Self {
                 Self {
-                    mutex: Mutex::new(false),
+                    mutex: Mutex::new(Vec::new()),
                     cond: Condvar::new(),
                 }
             }
 
-            pub fn Lock(&self) -> MutexGuard<bool> {
+            pub fn Lock(&self) -> MutexGuard<Vec<String>> {
                 return self.mutex.lock().unwrap();
             }
             
@@ -301,7 +303,7 @@ pub fn test()  {
                 self.cond.notify_one();
             }
 
-            pub fn Wait<'a, bool>(&self, started: MutexGuard<'a, bool>) -> LockResult<MutexGuard<'a, bool>> {
+            pub fn Wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
                 return self.cond.wait(started);
             }
         };
@@ -318,7 +320,7 @@ pub fn test()  {
                 }
             }
 
-            pub fn Lock(&self) -> MutexGuard<bool> {
+            pub fn Lock(&self) -> MutexGuard<Vec<String>> {
                 return self.inner.Lock();
             }
 
@@ -326,7 +328,7 @@ pub fn test()  {
                 self.inner.NotifyOne();
             }
 
-            pub fn Wait<'a, bool>(&self, started: MutexGuard<'a, bool>) -> LockResult<MutexGuard<'a, bool>> {
+            pub fn Wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
                 return self.inner.Wait(started);
             }
         };
@@ -335,20 +337,20 @@ pub fn test()  {
         let mut mcond2 = mcond.clone();
 
         thread::spawn(move|| {
+            thread::sleep(Duration::from_millis(50));
             print!("thd1 ready to lock\n");
-            let mut started = mcond2.Lock();
-            *started = true;
+            let mut vec = mcond2.Lock();
+            (*vec).push("AAAA".to_string());
+            (*vec).push("BBB".to_string());
+            (*vec).push("CCC".to_string());
             print!("thd1 ready to notify_one\n");
             mcond2.NotifyOne();
             print!("thd1 ready to notify_one done\n");
         });
 
-        let mut started = mcond.Lock();
-        while !*started {
-            started = mcond.Wait(started).unwrap();
-            print!("*started:{:?} type_of:{}\n", *started, type_of(&*started));
-        }
-       
+        let mut strvec = mcond.Lock();
+        strvec = mcond.Wait(strvec).unwrap();
+        print!("*started:{:?} type_of:{}\n", *strvec, type_of(&*strvec));
     }
 
     log!("done");
