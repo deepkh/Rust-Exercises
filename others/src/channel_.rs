@@ -537,6 +537,8 @@ pub fn test()  {
          **/
         #[derive(Clone)]
         struct MessageQueue {
+            //why need double arc in parent and here
+            //this because the parent arc.clone() need child also support clone()
             message_queue_sync: Arc<MessageQueueSync>,
             message_queue_handlers: Arc<MessageQueueHandlers>,
         };
