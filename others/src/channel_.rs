@@ -411,8 +411,295 @@ pub fn test()  {
             }
             print!("main *(ret.0):{:?} type_of:{}\n", *(ret.0), type_of(&*(ret.0)));
         }
-
     }
+
+    {
+        #[derive(Debug, Clone)]
+        struct Data {
+            s: String,
+        };
+
+        let mut v: Vec<Data> = Vec::new();
+        v.push(Data{s: "AAA".to_string()});
+        v.push(Data{s: "BBB".to_string()});
+        v.push(Data{s: "CCC".to_string()});
+       
+        let bbb = v.remove(1);
+        print!("bbb:{:?} v:{:?}\n", bbb, v);
+    }
+
+    print!("\n\n");
+
+    //https://bennetthardwick.com/blog/dont-use-boxed-trait-objects-for-struct-internals/
+    {
+        /**
+         *  Message
+         **/
+        pub trait Message {
+            fn HandlerId(&self) -> i32;
+            fn MessageId(&self) -> i32;
+            fn Data(&self) -> &String;
+        };
+        
+        /**
+         *  MessageHandler
+         **/
+        pub trait MessageHandler {
+            fn OnMessage(&self, msg: Option<Box<dyn Message + Send>>) -> bool;
+        }
+
+        /**
+         *  MessageQueueSync
+         **/
+        struct MessageQueueSync {
+            messages_mutex: Mutex<Vec<Option<Box<dyn Message + Send>>>>,
+            cond: Condvar,
+        };
+
+        impl MessageQueueSync {
+            pub fn new() -> Self {
+                Self {
+                    messages_mutex: Mutex::new(Vec::new()),
+                    cond: Condvar::new(),
+                }
+            }
+
+            pub fn GetMessage(&self) -> Option<Box<dyn Message + Send>> {
+                let mut messages_mutex_guard = self.messages_mutex.lock().unwrap();
+                while (*messages_mutex_guard).len() == 0 {
+                    messages_mutex_guard = self.cond.wait(messages_mutex_guard).unwrap();
+                }
+                (*messages_mutex_guard).remove(0)
+            }
+
+            pub fn GetMessageTimeout(&self, dur: Duration) -> Option<Box<dyn Message + Send>> {
+                let mut messages_mutex_guard = self.messages_mutex.lock().unwrap();
+                let mut message_option: Option<Box<dyn Message + Send>> = None;
+                
+                if (*messages_mutex_guard).len() == 0 {
+                    let mut ret = self.cond.wait_timeout(messages_mutex_guard, dur).unwrap();
+                    if !ret.1.timed_out() {
+                       message_option = (*(ret.0)).remove(0);
+                    }
+                } else {
+                    message_option = (*messages_mutex_guard).remove(0);
+                }
+
+                message_option
+            }
+
+            pub fn PostMessage(&self, message_option: Option<Box<dyn Message + Send>>) {
+                let mut messages_mutex_guard = self.messages_mutex.lock().unwrap();
+                (*messages_mutex_guard).push(message_option);
+                self.cond.notify_all();
+            }
+        };
+
+
+        /**
+         *  MessageQueueHandlers
+         **/
+        struct MessageQueueHandlers {
+            handlers_mutex: Mutex<HashMap<i32, Arc<dyn MessageHandler + Send + Sync>>>,
+        };
+
+        impl MessageQueueHandlers {
+            pub fn new() -> Self {
+                Self {
+                    handlers_mutex: Mutex::new(HashMap::new()),
+                }
+            }
+
+            pub fn RegisterMessageHandler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
+                let mut handlers_hash = self.handlers_mutex.lock().unwrap();
+                let old_handler = handlers_hash.get(&handler_id);
+                if !old_handler.is_none() {
+                    print!("handler {} already exist\n", handler_id);
+                    return;
+                }
+
+                handlers_hash.insert(handler_id, handler);
+            }
+
+            pub fn DispatchMessage(&self, message_option: Option<Box<dyn Message + Send>>) -> bool {
+                let mut handlers_hash = self.handlers_mutex.lock().unwrap();
+                if let Some(handler) = handlers_hash.get(&message_option.as_ref().unwrap().HandlerId()) {
+                    return handler.OnMessage(message_option);
+                }
+                false
+            }
+        };
+
+
+
+        /**
+         *  MessageQueue
+         **/
+        #[derive(Clone)]
+        struct MessageQueue {
+            message_queue_sync: Arc<MessageQueueSync>,
+            message_queue_handlers: Arc<MessageQueueHandlers>,
+        };
+
+        impl MessageQueue {
+            pub fn new() -> Self {
+                Self {
+                    message_queue_sync: Arc::new(MessageQueueSync::new()),
+                    message_queue_handlers: Arc::new(MessageQueueHandlers::new()),
+                }
+            }
+
+            pub fn GetMessage(&self) -> Option<Box<dyn Message + Send>> {
+                self.message_queue_sync.GetMessage()
+            }
+
+            pub fn GetMessageTimeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>> {
+                self.message_queue_sync.GetMessageTimeout(duration)
+            }
+
+            pub fn PostMessage(&self, message_option: Option<Box<dyn Message + Send>>) {
+                self.message_queue_sync.PostMessage(message_option);
+            }
+
+            pub fn RegisterMessageHandler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
+                self.message_queue_handlers.RegisterMessageHandler(handler_id, handler);
+            }
+
+            pub fn ProcessNextMessage(&self) -> bool {
+                let message_option = self.GetMessage();
+                if message_option.is_some()  {
+                    return self.message_queue_handlers.DispatchMessage(message_option);
+                }
+                false
+            }
+        };
+
+
+        /**
+         *  MessageThread
+         **/
+        struct MessageThread {
+            message_queue: Arc<MessageQueue>,
+            thread: Option<thread::JoinHandle<()>>, 
+        };
+
+        impl MessageThread {
+            pub fn new(message_queue: Arc<MessageQueue>) -> Self {
+                Self {
+                    message_queue,
+                    thread: None,
+                }
+            }
+
+            pub fn Start(&mut self) {
+                if self.thread.is_some() {
+                    return;
+                }
+
+                let message_queue = self.message_queue.clone();
+                let thread = thread::spawn(move || {
+                    while message_queue.ProcessNextMessage() {
+                        ;
+                    }
+                    print!("MessageThread done\n");
+                });
+
+                self.thread = Some(thread);
+                print!("MessageThread()  start {}\n", self.thread.is_none());
+            }
+
+            pub fn Stop(&mut self) {
+                if self.thread.is_none() {
+                    return;
+                }
+                
+                if let Some(thread) = self.thread.take() {
+                    self.message_queue.PostMessage(None);
+                    thread.join().unwrap();
+                    print!("MessageThread()  stopped {}\n", self.thread.is_none());
+                }
+            }
+        };
+
+        impl Drop for MessageThread {
+            fn drop(&mut self) {
+                self.Stop();
+            }
+        };
+
+
+        /**
+         *  TestMessage
+         **/
+        struct TestMessage {
+            handler_id: i32,
+            test: String,
+        };
+
+        impl TestMessage {
+            pub fn new(handler_id: i32, test: String) -> Self {
+                Self {
+                    handler_id,
+                    test,
+                }
+            }
+        };
+
+        impl Message for TestMessage {
+            fn HandlerId(&self) -> i32 {
+                self.handler_id
+            }
+
+            fn MessageId(&self) -> i32 {
+                123
+            }
+
+            fn Data(&self) -> &String {
+                &(self.test)
+            }
+        };
+
+        /**
+         *  TestMessageHandler
+         **/
+        struct TestMessageHandler {
+            ok: i32,
+        };
+
+        impl TestMessageHandler {
+            fn new() -> Self {
+                Self {
+                    ok: 123,
+                }
+            }
+        };
+
+        impl MessageHandler for TestMessageHandler {
+            fn OnMessage(&self, msg: Option<Box<dyn Message + Send>>) -> bool {
+                if let Some(msg) = msg {
+                    print!("hi from thread: {} {} {}\n", msg.HandlerId(), msg.MessageId(), msg.Data());
+                    return true;
+                }
+                return false;
+            }
+        };
+
+
+        let test_handler = Arc::new(TestMessageHandler::new());
+        let message_queue = Arc::new(MessageQueue::new());
+        message_queue.RegisterMessageHandler(1, test_handler);
+
+        let mut message_thread = MessageThread::new(message_queue.clone());
+        message_thread.Start();
+
+        for i in 1..10 {
+            message_queue.PostMessage(Some(Box::new(TestMessage::new(1, "HEEEEEEEELLO".to_string()))));
+        }
+    }
+
+
+    print!("\n");
+
 
     log!("done");
 }
