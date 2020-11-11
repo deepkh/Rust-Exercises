@@ -754,7 +754,24 @@ pub fn test()  {
             }
         };
 
+        print!("===== single thread \n");
+        //single thread version
+        let test_handler = Arc::new(TestMessageHandler::new());
+        let message_queue = Arc::new(MessageQueue::new());
+        message_queue.RegisterMessageHandler(1, test_handler);
 
+        //single thread version
+        for i in 0..10 {
+            if i%2 == 0 {
+                message_queue.PostMessage(Some(Box::new(HelloMessage::new(1, "HEEEEEEEELLO".to_string()))));
+            } else {
+                message_queue.PostMessage(Some(Box::new(WorldMessage::new(1, "WOOOOOOOORLD".to_string()))));
+            }
+            message_queue.ProcessNextMessage();
+        }
+
+
+        print!("===== multi thread \n");
         let test_handler = Arc::new(TestMessageHandler::new());
         let message_queue = Arc::new(MessageQueue::new());
         message_queue.RegisterMessageHandler(1, test_handler);
@@ -762,6 +779,7 @@ pub fn test()  {
         let mut message_thread = MessageThread::new(message_queue.clone());
         message_thread.Start();
 
+        //thread version
         for i in 0..10 {
             if i%2 == 0 {
                 message_queue.PostMessage(Some(Box::new(HelloMessage::new(1, "HEEEEEEEELLO".to_string()))));
@@ -769,6 +787,8 @@ pub fn test()  {
                 message_queue.PostMessage(Some(Box::new(WorldMessage::new(1, "WOOOOOOOORLD".to_string()))));
             }
         }
+
+
     }
 
 
