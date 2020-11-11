@@ -14,6 +14,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use std::time::Duration;
 use std::collections::HashMap;
+use std::any::Any;
 
 pub fn test()  {
     print!("\n------------ {} ------------\n", function!());
@@ -439,13 +440,14 @@ pub fn test()  {
             fn HandlerId(&self) -> i32;
             fn MessageId(&self) -> i32;
             fn Data(&self) -> &String;
+            fn as_any(&self) -> &dyn Any;
         };
         
         /**
          *  MessageHandler
          **/
         pub trait MessageHandler {
-            fn OnMessage(&self, msg: Option<Box<dyn Message + Send>>) -> bool;
+            fn OnMessage(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool;
         }
 
         /**
@@ -521,10 +523,10 @@ pub fn test()  {
                 handlers_hash.insert(handler_id, handler);
             }
 
-            pub fn DispatchMessage(&self, message_option: Option<Box<dyn Message + Send>>) -> bool {
+            pub fn DispatchMessage(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
                 let mut handlers_hash = self.handlers_mutex.lock().unwrap();
-                if let Some(handler) = handlers_hash.get(&message_option.as_ref().unwrap().HandlerId()) {
-                    return handler.OnMessage(message_option);
+                if let Some(handler) = handlers_hash.get(&option_box_msg.as_ref().unwrap().HandlerId()) {
+                    return handler.OnMessage(option_box_msg);
                 }
                 false
             }
@@ -631,23 +633,27 @@ pub fn test()  {
 
 
         /**
-         *  TestMessage
+         *  HelloMessage
          **/
-        struct TestMessage {
+        struct HelloMessage {
             handler_id: i32,
             test: String,
         };
 
-        impl TestMessage {
+        impl HelloMessage {
             pub fn new(handler_id: i32, test: String) -> Self {
                 Self {
                     handler_id,
                     test,
                 }
             }
+
+            pub fn DoHelloMessageOnlyFunction(&self) {
+                print!("HelloMessage::DoHelloMessageOnlyFunction() handler_id:{} test:{}\n", self.handler_id, self.test);
+            }
         };
 
-        impl Message for TestMessage {
+        impl Message for HelloMessage {
             fn HandlerId(&self) -> i32 {
                 self.handler_id
             }
@@ -659,7 +665,51 @@ pub fn test()  {
             fn Data(&self) -> &String {
                 &(self.test)
             }
+
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
         };
+
+        /**
+         *  WorldMessage
+         **/
+        struct WorldMessage {
+            handler_id: i32,
+            test: String,
+        };
+
+        impl WorldMessage {
+            pub fn new(handler_id: i32, test: String) -> Self {
+                Self {
+                    handler_id,
+                    test,
+                }
+            }
+
+            pub fn DoWorldMessageOnlyFunction(&self) {
+                print!("WorldMessage::DoWorldMessageOnlyFunction() handler_id:{} test:{}\n", self.handler_id, self.test);
+            }
+        };
+
+        impl Message for WorldMessage {
+            fn HandlerId(&self) -> i32 {
+                self.handler_id
+            }
+
+            fn MessageId(&self) -> i32 {
+                123
+            }
+
+            fn Data(&self) -> &String {
+                &(self.test)
+            }
+
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+        };
+
 
         /**
          *  TestMessageHandler
@@ -677,12 +727,30 @@ pub fn test()  {
         };
 
         impl MessageHandler for TestMessageHandler {
-            fn OnMessage(&self, msg: Option<Box<dyn Message + Send>>) -> bool {
-                if let Some(msg) = msg {
-                    print!("hi from thread: {} {} {}\n", msg.HandlerId(), msg.MessageId(), msg.Data());
-                    return true;
+            fn OnMessage(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
+                if option_box_msg.is_none() {
+                    return false;
                 }
-                return false;
+
+                let box_msg = option_box_msg.unwrap();
+                print!("box_msg type_of:{} \n", type_of(&box_msg));
+                //Box<dyn others::channel_::test::Message+core::marker::Send>
+
+                if let Some(hello_msg) = box_msg.as_ref().as_any().downcast_ref::<HelloMessage>() {
+                    print!("hello_msg type_of:{} \n", type_of(&hello_msg));
+                    //Option<&others::channel_::test::TestMessage>
+
+                    //do some HelloMessage only function
+                    hello_msg.DoHelloMessageOnlyFunction();
+                } else if let Some(world_msg) = box_msg.as_ref().as_any().downcast_ref::<WorldMessage>() {
+                    print!("world_msg type_of:{} \n", type_of(&world_msg));
+                    //Option<&others::channel_::test::TestMessage>
+
+                    //do some WorldMessage only function
+                    world_msg.DoWorldMessageOnlyFunction();
+                }
+                print!("\n");
+                return true;
             }
         };
 
@@ -694,8 +762,12 @@ pub fn test()  {
         let mut message_thread = MessageThread::new(message_queue.clone());
         message_thread.Start();
 
-        for i in 1..10 {
-            message_queue.PostMessage(Some(Box::new(TestMessage::new(1, "HEEEEEEEELLO".to_string()))));
+        for i in 0..10 {
+            if i%2 == 0 {
+                message_queue.PostMessage(Some(Box::new(HelloMessage::new(1, "HEEEEEEEELLO".to_string()))));
+            } else {
+                message_queue.PostMessage(Some(Box::new(WorldMessage::new(1, "WOOOOOOOORLD".to_string()))));
+            }
         }
     }
 
