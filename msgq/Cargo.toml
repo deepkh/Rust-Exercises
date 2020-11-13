@@ -1,5 +1,5 @@
 [package]
-name = "others"
+name = "msgq"
 version = "0.1.0"
 authors = ["deepkh <deepkh@gmail.com>"]
 edition = "2018"
@@ -8,5 +8,4 @@ edition = "2018"
 
 [dependencies]
 libhelper = { path = "../libhelper" }
-msgq = { path = "../msgq" }
 

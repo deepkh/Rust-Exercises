@@ -11,6 +11,8 @@ mod box2;
 mod rc2;
 mod mutex_guard_;
 mod channel_;
+//use msgq::message_queue::*;
+//use msgq::test::*;
 
 use traits::*;
 
@@ -77,5 +79,8 @@ fn main() {
     
     /** channel_ test */
     crate::channel_::test();
+
+    /** msgq::test::TestMessageQueue() */
+    msgq::test::TestMessageQueue();
     print!("\n------------ {} done ------------\n", function!());
 }
