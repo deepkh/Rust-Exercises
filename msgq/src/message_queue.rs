@@ -23,8 +23,6 @@ use std::any::Any;
  **/
 pub trait Message {
     fn HandlerId(&self) -> i32;
-    fn MessageId(&self) -> i32;
-    fn Data(&self) -> &String;
     fn as_any(&self) -> &dyn Any;
 }
 

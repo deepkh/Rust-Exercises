@@ -44,14 +44,6 @@ impl Message for HelloMessage {
         self.handler_id
     }
 
-    fn MessageId(&self) -> i32 {
-        123
-    }
-
-    fn Data(&self) -> &String {
-        &(self.test)
-    }
-
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -81,14 +73,6 @@ impl WorldMessage {
 impl Message for WorldMessage {
     fn HandlerId(&self) -> i32 {
         self.handler_id
-    }
-
-    fn MessageId(&self) -> i32 {
-        123
-    }
-
-    fn Data(&self) -> &String {
-        &(self.test)
     }
 
     fn as_any(&self) -> &dyn Any {
