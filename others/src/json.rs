@@ -1,22 +1,8 @@
 use libhelper::*;
-use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
-use std::rc::Rc;
-use std::cell::Cell;
-use std::cell::RefCell;
-use std::sync::{Mutex, Arc, Condvar, MutexGuard, LockResult, WaitTimeoutResult};
-use std::thread;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
-use std::time::Duration;
+//use libhelper::helper::type_of;
 use std::collections::HashMap;
-use std::any::Any;
 use serde::{Serialize, Deserialize};
-use serde_json::{Result, Value};
+//use serde_json::{Result, Value};
 
 
 pub fn test()  {
@@ -69,6 +55,7 @@ pub fn test()  {
 
 
         //error: give wrong name1 -> Panic
+        /*
         let data = r#"
             {
                 "name1": "John Doe",
@@ -86,10 +73,12 @@ pub fn test()  {
                    {"name": "B"}
                 ]
             }"#;
+        */
         //let p: Person = serde_json::from_str(&data).unwrap();
         //print!("Convert json string to struct\n\t{:?}\n", p);
 
         //error: leak name filed -> Panic
+        /*
         let data = r#"
             {
                 "age": 43,
@@ -106,10 +95,12 @@ pub fn test()  {
                    {"name": "B"}
                 ]
             }"#;
+        */
         //let p: Person = serde_json::from_str(&data).unwrap();
         //print!("Convert json string to struct\n\t{:?}\n", p);
 
         //error: upper cast for name filed -> Panic
+        /*
         let data = r#"
             {
                 "Name": "John Doe",
@@ -127,6 +118,7 @@ pub fn test()  {
                    {"name": "B"}
                 ]
             }"#;
+        */
         //let p: Person = serde_json::from_str(&data).unwrap();
         //print!("Convert json string to struct\n\t{:?}\n", p);
         

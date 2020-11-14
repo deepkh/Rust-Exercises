@@ -1,15 +1,6 @@
 use libhelper::*;
 use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
-use std::rc::Rc;
-use std::cell::Cell;
-use std::cell::RefCell;
 use std::sync::{Mutex, Arc};
-use std::thread;
 
 pub fn test()  {
     print!("\n------------ {} ------------\n", function!());
@@ -28,7 +19,7 @@ pub fn test()  {
                 }
             }
 
-            let mut b: Arc<Data> = Arc::new(Data {a:"AAAA".to_string(), b:333, c: Mutex::new("GGGG".to_string())});
+            let b: Arc<Data> = Arc::new(Data {a:"AAAA".to_string(), b:333, c: Mutex::new("GGGG".to_string())});
             print!("b:{:?} type_of:{}\n", b, type_of(&b));
             //b:RefCell { value: Data { a: "AAAA", b: 333 } } type_of:alloc::rc::Rc<core::cell::RefCell<others::rc_arc::test::Data>>
 

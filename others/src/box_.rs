@@ -1,10 +1,5 @@
 use libhelper::*;
 use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
 
 
 
@@ -46,9 +41,6 @@ impl SomeData2 {
         }
     }
     
-    pub fn dump(&self) {
-        log!("{} {}\n", self.name, self.age);
-    }
 }
 
 impl Clone for SomeData2 {
@@ -178,10 +170,12 @@ fn option_box_test()
         //p.unwrap().dump();          //this will cause panic       
     }
 
+    /*
     {
         let p: Option<Box<SomeData3>> = None;
         //p.expect("GG 15FF").dump();          //this will cause panic with specified 'GG 15FF' message 
     }
+    */
 }
 
 //option with as_mut for write purpose
@@ -231,7 +225,7 @@ pub fn test()  {
         p.as_mut().push("A2".to_string());
         p.as_mut().push("A3".to_string());
 
-        let mut p2 = p.clone();         //deep clone data to a new address
+        let p2 = p.clone();         //deep clone data to a new address
         p.as_mut()[0] = "B1".to_string();
         
         print!("{:?} \n", p);           //["B1", "A2", "A3"]
@@ -247,7 +241,7 @@ pub fn test()  {
             return;
         }
 
-       print_name(p.as_ref()); 
+       print_name(p.as_ref()).unwrap(); 
     }
 }
 

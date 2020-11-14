@@ -1,13 +1,5 @@
 use libhelper::*;
 use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
-use std::rc::Rc;
-use std::cell::Cell;
-use std::cell::RefCell;
 
 /***********************************************************
  * iter_filter_test
@@ -49,14 +41,14 @@ pub fn function_pointer_test(ofp: Option<&dyn Fn(&str) -> String>) {
 /***********************************************************
  * closure_fnmut_test
  ***********************************************************/
-fn call_multitimes_with_read_write<F>(mut f: &mut F)
+fn call_multitimes_with_read_write<F>(f: &mut F)
     where F: FnMut()
 {
     f();
     f();
 }
 
-fn call_multitimes_with_read_write_dyn(mut f: &mut dyn FnMut())
+fn call_multitimes_with_read_write_dyn(f: &mut dyn FnMut())
 {
     f();
     f();
@@ -78,7 +70,7 @@ pub fn closure_fnmut_test() {
     // move closure: writable closure look like use Move
     {
         let mut x = 1;
-        let mut f = || x += 1;
+        let f = || x += 1;
         let mut y = f;
         //f();                //error[E0382]: borrow of moved value: `f`
         y();

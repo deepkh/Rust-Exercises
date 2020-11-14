@@ -12,6 +12,7 @@ mod rc2;
 mod mutex_guard_;
 mod channel_;
 mod json;
+mod async_;
 //use msgq::message_queue::*;
 //use msgq::test::*;
 
@@ -24,24 +25,24 @@ fn main() {
     libhelper::rust_function_a();
     libhelper::log!("XXXX\n");
     
-    /** match_handling test */
+    //** match_handling test */
     crate::match_handling::test();
 
-    /** file test */
+    //** file test */
     crate::file::test();
     
-    /** file2 test */
+    //** file2 test */
     if let Err(e) = crate::file2::test() {
         print!("{}\n", ErrStack!(e, "failed to crate::file2::test()").to_string());
     };
 
-    /** traits test */
-    crate::traits::test();
+    //** traits test */
+    crate::traits::test().unwrap();
 
     print!("\n------------ {} use traits from main module ------------\n", function!());
     //use trait from another module
     let n: i32 = 43210;
-    let pn: &crate::traits::ToString = &n;
+    let pn: &dyn crate::traits::ToString = &n;
     crate::traits::dump_string(&n);
     crate::traits::dump_string(pn);
 
@@ -57,34 +58,37 @@ fn main() {
     let c1 = Complex::new(99.2, 98.3);
     dump_string(&c1);
     
-    /** box test */
+    //** box test */
     crate::box_::test();
     
-    /** rc test */
+    //** rc test */
     crate::rc_::test();
     
-    /** closure test */
+    //** closure test */
     crate::closure::test();
     
-    /** copy_move_clone test */
+    //** copy_move_clone test */
     crate::copy_move_clone::test();
     
-    /** box2 test */
+    //** box2 test */
     crate::box2::test();
 
-    /** rc2 test */
+    //** rc2 test */
     crate::rc2::test();
 
-    /** mutex_guard_ test */
+    //** mutex_guard_ test */
     crate::mutex_guard_::test();
     
-    /** channel_ test */
+    //** channel_ test */
     crate::channel_::test();
 
-    /** msgq::test::TestMessageQueue() */
-    msgq::test::TestMessageQueue();
+    //** msgq::test::TestMessageQueue() */
+    msgq::test::test_message_queue();
     
-    /** json::test() */
+    //** json::test() */
     crate::json::test();
+    
+    //** async () */
+    crate::async_::test();
     print!("\n------------ {} done ------------\n", function!());
 }

@@ -1,16 +1,7 @@
 use libhelper::*;
 use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
-use std::rc::Rc;
-use std::cell::Cell;
-use std::cell::RefCell;
 
 pub fn test() {
-    let mut case_i = 0;
     print!("\n------------ {} ------------\n", function!());
 
     // References for Copy, Move, Clone
@@ -27,20 +18,25 @@ pub fn test() {
 
     //implicitly: Copy, Move
     {
+        /*
         // Copy
         {
             let mut a: i32 = 123;
             let b = a;
             a = 456;
         }
+        */
 
+        /*
         // Move 
         {
-            let mut a: String = "AAA".to_string();
+            let a: String = "AAA".to_string();
             let b = a;
             //a.push_str("BBB"); //error[E0382]: borrow of moved value: `a`
         }
+        */
 
+        /*
         // Move: no impl copy
         {
             #[derive(Debug)]        
@@ -49,12 +45,14 @@ pub fn test() {
                 b: i32,
             }
             
-            let mut a: Data = Data{a:123, b:456};
+            let a: Data = Data{a:123, b:456};
             let b = a;                              //this is Move
             //a.a = 456;                              //error[E0382]: assign to part of moved value: `a`
             //let c = a.clone();                        //method not found in `copy_move_clone::test::Data`
         }
+        */
 
+        /*
         // Copy: impl copy manually 
         {
             #[derive(Debug)]        
@@ -79,7 +77,9 @@ pub fn test() {
             a.b = 123;
             let c = a.clone();                      //this same as copy in this case
         }
+        */
 
+        /*
         // Copy: impl copy by use derive, Clone  
         {
             //Clone is a supertrait of Copy, so everything member variables which is Copy must also implement Clone
@@ -96,16 +96,19 @@ pub fn test() {
             a.b = 123;
             let c = a.clone();                      //this same as copy in this case
         }
+        */
     }
 
     // explicit: Clone
     {
+        /*
         //Clone:
         {
             let mut a: String = "AAA".to_string();
             let b = a.clone();
             a.push_str("BBB");
         }
+        */
 
         //Clone: impl clone manually
         {
@@ -177,6 +180,7 @@ pub fn test() {
             print!("p2:{:?}  type_of:{}\n", p2, type_of(&p2));   //p2:Data { a: 369, b: 456 }  type_of:others::copy_move_clone::test::Data
         }
 
+        /*
         // No impl Copy 
         {
             #[derive(Debug, Clone)]        
@@ -185,12 +189,13 @@ pub fn test() {
                 b: i32,
             }
 
-            let mut p:Data = Data{a:"123".to_string(), b:456};
+            let p:Data = Data{a:"123".to_string(), b:456};
             let p1 = &p;
             //let p2 = *p1;         //this is move
                                     //error[E0507]: cannot move out of `*p1` which is behind a shared reference
                                     //move occurs because `*p1` has type `copy_move_clone::test::Data`, which does not implement the `Copy` trait
         }
+        */
     }
 
     //Conclusion:

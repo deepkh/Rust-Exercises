@@ -1,13 +1,5 @@
 use libhelper::*;
 use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
-use std::rc::Rc;
-use std::cell::Cell;
-use std::cell::RefCell;
 
 #[derive(Debug)]        
 struct Data3 {
@@ -30,7 +22,7 @@ fn box_asmut(p: &mut Data3) {
 }
 
 pub fn test() {
-    let mut case_i = 0;
+    //let case_i = 0;
     print!("\n------------ {} ------------\n", function!());
 
     // References for Box
@@ -69,17 +61,17 @@ pub fn test() {
             }
             
             let mut g:Box<DataG> = Box::new(DataG{a:123, b:456});
-            let mut g1 = *g;                //pass by value due to Copy already impled
+            let g1 = *g;                //pass by value due to Copy already impled
             g.a = 456;  
             
-            let mut a:Box<Data> = Box::new(Data{a:123, b:456});
+            let a:Box<Data> = Box::new(Data{a:123, b:456});
             let a1 = &a;
             
             let mut aa:Box<Data> = Box::new(Data{a:123, b:456});
             let mut aa1 = &mut aa;
             aa1.a = 888;
             
-            let mut b:Box<Data> = Box::new(Data{a:123, b:456});
+            let b:Box<Data> = Box::new(Data{a:123, b:456});
             let b1 = b.as_ref();
             
             let mut bb:Box<Data> = Box::new(Data{a:123, b:456});
@@ -124,7 +116,7 @@ pub fn test() {
 
         // Move
         {
-            let mut p:Box<i32> = Box::new(123);
+            let p:Box<i32> = Box::new(123);
             let mut p1 = p;
             
             //*p = 321;           //error[E0382]: use of moved value: `p`
@@ -147,7 +139,7 @@ pub fn test() {
 
         // Borrow & deref
         {
-            let mut p:Box<i32> = Box::new(123);
+            let p:Box<i32> = Box::new(123);
             let p1 = &p;
             //let p2 = *p1;     //error[E0507]: cannot move out of `*p1` which is behind a shared reference
             print!("\n*p:{}  type_of:{}\n", *p, type_of(&*p)); //*p:123  type_of:i32
@@ -164,7 +156,7 @@ pub fn test() {
                 b: i32,
             }
 
-            let mut p:Box<Data> = Box::new(Data{a:"123".to_string(), b:456});
+            let p:Box<Data> = Box::new(Data{a:"123".to_string(), b:456});
             let mut p1 = p;                                     //move
             
             //p.a = "321".to_string();                          //error[E0382]: assign to part of moved value: `*p`
@@ -182,7 +174,7 @@ pub fn test() {
                 b: i32,
             }
             
-            let mut p:Box<Data> = Box::new(Data{a:123, b:456});
+            let p:Box<Data> = Box::new(Data{a:123, b:456});
             let p1 = p.as_ref();                //this is borrow reference
             let p2 = *p1;                       //this is copy
             let p3 = p1.clone();
@@ -191,6 +183,7 @@ pub fn test() {
             print!("p3:{:?}  type_of:{}\n", p3, type_of(&p3));   //p3:Data { a: 123, b: 456 }  type_of:others::box2::test::Data
         }
 
+        /*
         //Move: as_ref: Move
         {
             #[derive(Debug)]        
@@ -199,11 +192,12 @@ pub fn test() {
                 b: i32,
             }
             
-            let mut p:Box<Data> = Box::new(Data{a:123, b:456});
+            let p:Box<Data> = Box::new(Data{a:123, b:456});
             let p1 = p.as_ref();                //this is borrow reference
             //let p2 = *p1;                     //error[E0507]: cannot move out of `*p1` which is behind a shared reference
                                                 //move occurs because `*p1` has type `box2::test::Data`, which does not implement the `Copy` trait
         }
+        */
 
         //Copy: as_mut (mutable)
         {
@@ -257,6 +251,7 @@ pub fn test() {
         // borrow reference & deref
         {
 
+            /*
             // Copy
             {
                 #[derive(Debug, Copy, Clone)]        
@@ -265,14 +260,16 @@ pub fn test() {
                     b: i32,
                 }
                 
-                let mut p:Box<Data> = Box::new(Data{a:123, b:456});
-                let mut p1 = &mut p;
+                let p:Box<Data> = Box::new(Data{a:123, b:456});
+                let p1 = &p;
                 //let mut p2 = *p1;           //this is copy
                                               //error[E0507]: cannot move out of `*p1` which is behind a mutable reference
                                               //move occurs because `*p1` has type `std::boxed::Box<box2::test::Data>`, 
                                               //which does not implement the `Copy` trait
             }
+            */
 
+            /*
             // No impl Copy 
             {
                 #[derive(Debug, Clone)]        
@@ -281,12 +278,13 @@ pub fn test() {
                     b: i32,
                 }
 
-                let mut p:Box<Data> = Box::new(Data{a:"123".to_string(), b:456});
+                let p:Box<Data> = Box::new(Data{a:"123".to_string(), b:456});
                 let p1 = &p;
                 //let p2 = *p1;           //this is copy
                                         //error[E0507]: cannot move out of `*p1` which is behind a shared reference
                                         //move occurs because `*p1` has type `std::boxed::Box<box2::test::Data>`, which does not implement the `Copy` trait
             }
+            */
         }
     }
 

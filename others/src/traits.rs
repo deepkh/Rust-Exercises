@@ -1,9 +1,5 @@
 use libhelper::*;
-use crate::ErrStack;
-use std::fs::File;
 use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
 
 /*
 mod RationalA {
@@ -41,9 +37,9 @@ pub mod mylib {
     use crate::traits::*;
 
     fn rational_counter_inc() -> i32 {
-        static mut rational_counter: i32 = 0;
+        static mut RATIONAL_COUNTER: i32 = 0;
         unsafe {
-            rational_counter.post_inc()
+            RATIONAL_COUNTER.post_inc()
         }
     }
 
@@ -53,16 +49,11 @@ pub mod mylib {
         pub den: i32,
     }
 
-    //namespace function
-    fn gcd(mut x: i32, mut y: i32) -> i32 {
-        // 求取 x 與 y 的最大公因數，這裡省略實作
-        // ...
-        0
-    }
 
-    pub fn new_rational(num: i32, den: i32) -> Rational {
+    /*pub fn new_rational(num: i32, den: i32) -> Rational {
         return Rational {name: format!("{}", rational_counter_inc()), num, den }; // OK
     }
+    */
 
     //use impl to add member function for sturct Rational
     impl Rational {
@@ -75,21 +66,11 @@ pub mod mylib {
         }
        
         //consturctor also can be 'new2'
-        pub fn new2(n: i32, d: i32) -> Self {
+        /*pub fn new2(n: i32, d: i32) -> Self {
             Rational { name: format!("{}", rational_counter_inc()), num: n, den: d }
-        }
+        }*/
 
-        //member function with immutable &self 
-        pub fn is_integer(&mut self) -> bool {
-            self.den == 1
-        }
         
-        //member function with mutable &self 
-        pub fn reduce(&mut self) {
-            let d = gcd(self.num, self.den);
-            self.num /= d;
-            self.den /= d;
-        }
     }
 
     //Wrong: look like the implements of ToString are not public when inside of mylib
@@ -129,9 +110,9 @@ pub struct Complex {
 }
 
 fn complex_counter_inc() -> i32 {
-    static mut complex_counter: i32 = 0;
+    static mut COMPLEX_COUNTER: i32 = 0;
     unsafe {
-        complex_counter.post_inc()
+        COMPLEX_COUNTER.post_inc()
     }
 }
 
@@ -181,11 +162,12 @@ impl ToString for f32 {
 }
 
 //only can use '&' pointer to pass interface  
-pub fn dump_string(ts: &ToString) {
+pub fn dump_string(ts: &dyn ToString) {
     log!("{}\n", ts.to_string_x());
 }
 
 pub fn test() -> io::Result<()> {
+    /*
     print!("\n------------ {} ------------\n", function!());
 
     //let s = RationalA::new_rational();
@@ -207,7 +189,7 @@ pub fn test() -> io::Result<()> {
     dump_string(&32);
     dump_string(&32.1);
     dump_string(&String::from("3210"));
-
+    */
     
     Ok(())
 }

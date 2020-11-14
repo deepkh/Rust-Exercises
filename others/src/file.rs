@@ -1,6 +1,5 @@
 use libhelper::*;
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
 
 fn create_and_write_1(file_name: &str) -> std::result::Result<(), String>
@@ -45,7 +44,7 @@ fn create_and_write_2(file_name: &str) -> std::result::Result<(), std::io::Error
 
 fn open_test(file_name: &str) -> std::io::Result<()>
 {
-    let fp = File::open(file_name)?;
+    let _ = File::open(file_name)?;
     log!("\n");
     Ok(())
 }

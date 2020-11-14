@@ -1,17 +1,5 @@
-use libhelper::*;
-use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
-use std::rc::Rc;
-use std::cell::Cell;
-use std::cell::RefCell;
-use std::sync::{Mutex, Arc, Condvar, MutexGuard, LockResult, WaitTimeoutResult};
+use std::sync::{Mutex, Arc, Condvar};
 use std::thread;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
 use std::time::Duration;
 use std::collections::HashMap;
 use std::any::Any;
@@ -22,7 +10,7 @@ use std::any::Any;
  *  Message
  **/
 pub trait Message {
-    fn HandlerId(&self) -> i32;
+    fn handler_id(&self) -> i32;
     fn as_any(&self) -> &dyn Any;
 }
 
@@ -30,7 +18,7 @@ pub trait Message {
  *  MessageHandler
  **/
 pub trait MessageHandler {
-    fn OnMessage(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool;
+    fn on_message(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool;
 }
 
 /**
@@ -49,7 +37,7 @@ impl MessageQueueVector {
         }
     }
 
-    pub fn GetMessage(&self) -> Option<Box<dyn Message + Send>> {
+    pub fn get_message(&self) -> Option<Box<dyn Message + Send>> {
         let mut messages_mutex_guard = self.messages_mutex.lock().unwrap();
         while (*messages_mutex_guard).len() == 0 {
             messages_mutex_guard = self.cond.wait(messages_mutex_guard).unwrap();
@@ -57,7 +45,7 @@ impl MessageQueueVector {
         (*messages_mutex_guard).remove(0)
     }
 
-    pub fn GetMessageTimeout(&self, dur: Duration) -> Option<Box<dyn Message + Send>> {
+    pub fn get_message_timeout(&self, dur: Duration) -> Option<Box<dyn Message + Send>> {
         let mut messages_mutex_guard = self.messages_mutex.lock().unwrap();
         let mut message_option: Option<Box<dyn Message + Send>> = None;
         
@@ -73,7 +61,7 @@ impl MessageQueueVector {
         message_option
     }
 
-    pub fn PostMessage(&self, message_option: Option<Box<dyn Message + Send>>) {
+    pub fn post_message(&self, message_option: Option<Box<dyn Message + Send>>) {
         let mut messages_mutex_guard = self.messages_mutex.lock().unwrap();
         (*messages_mutex_guard).push(message_option);
         self.cond.notify_all();
@@ -95,7 +83,7 @@ impl MessageQueueHandlers {
         }
     }
 
-    pub fn RegisterMessageHandler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
+    pub fn register_message_handler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
         let mut handlers_hash = self.handlers_mutex.lock().unwrap();
         let old_handler = handlers_hash.get(&handler_id);
         if !old_handler.is_none() {
@@ -106,10 +94,10 @@ impl MessageQueueHandlers {
         handlers_hash.insert(handler_id, handler);
     }
 
-    pub fn DispatchMessage(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
-        let mut handlers_hash = self.handlers_mutex.lock().unwrap();
-        if let Some(handler) = handlers_hash.get(&option_box_msg.as_ref().unwrap().HandlerId()) {
-            return handler.OnMessage(option_box_msg);
+    pub fn dispatch_message(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
+        let handlers_hash = self.handlers_mutex.lock().unwrap();
+        if let Some(handler) = handlers_hash.get(&option_box_msg.as_ref().unwrap().handler_id()) {
+            return handler.on_message(option_box_msg);
         }
         false
     }
@@ -136,26 +124,26 @@ impl MessageQueue {
         }
     }
 
-    pub fn GetMessage(&self) -> Option<Box<dyn Message + Send>> {
-        self.message_queue_vector.GetMessage()
+    pub fn get_message(&self) -> Option<Box<dyn Message + Send>> {
+        self.message_queue_vector.get_message()
     }
 
-    pub fn GetMessageTimeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>> {
-        self.message_queue_vector.GetMessageTimeout(duration)
+    pub fn get_message_timeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>> {
+        self.message_queue_vector.get_message_timeout(duration)
     }
 
-    pub fn PostMessage(&self, message_option: Option<Box<dyn Message + Send>>) {
-        self.message_queue_vector.PostMessage(message_option);
+    pub fn post_message(&self, message_option: Option<Box<dyn Message + Send>>) {
+        self.message_queue_vector.post_message(message_option);
     }
 
-    pub fn RegisterMessageHandler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
-        self.message_queue_handlers.RegisterMessageHandler(handler_id, handler);
+    pub fn register_message_handler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
+        self.message_queue_handlers.register_message_handler(handler_id, handler);
     }
 
-    pub fn ProcessNextMessage(&self) -> bool {
-        let message_option = self.GetMessage();
+    pub fn process_next_message(&self) -> bool {
+        let message_option = self.get_message();
         if message_option.is_some()  {
-            return self.message_queue_handlers.DispatchMessage(message_option);
+            return self.message_queue_handlers.dispatch_message(message_option);
         }
         false
     }
@@ -178,15 +166,15 @@ impl MessageThread {
         }
     }
 
-    pub fn Start(&mut self) {
+    pub fn start(&mut self) {
         if self.thread.is_some() {
             return;
         }
 
         let message_queue = self.message_queue.clone();
         let thread = thread::spawn(move || {
-            while message_queue.ProcessNextMessage() {
-                ;
+            while message_queue.process_next_message() {
+                
             }
             print!("MessageThread done\n");
         });
@@ -195,13 +183,13 @@ impl MessageThread {
         print!("MessageThread()  start {}\n", self.thread.is_none());
     }
 
-    pub fn Stop(&mut self) {
+    pub fn stop(&mut self) {
         if self.thread.is_none() {
             return;
         }
         
         if let Some(thread) = self.thread.take() {
-            self.message_queue.PostMessage(None);
+            self.message_queue.post_message(None);
             thread.join().unwrap();
             print!("MessageThread()  stopped {}\n", self.thread.is_none());
         }
@@ -210,7 +198,7 @@ impl MessageThread {
 
 impl Drop for MessageThread {
     fn drop(&mut self) {
-        self.Stop();
+        self.stop();
     }
 }
 

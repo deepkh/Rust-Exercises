@@ -1,10 +1,5 @@
 use libhelper::*;
 use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
 use std::rc::Rc;
 use std::cell::Cell;
 use std::cell::RefCell;
@@ -14,31 +9,31 @@ use std::cell::RefCell;
 //use std::borrow::BorrowMut;
 
 /*******************************************
- * mydata_rc
+ * MydataRc
  ******************************************/
-struct mydata_rc {
+struct MydataRc {
     name: String,
     age: i32,
 }
 
-impl Drop for mydata_rc {
+impl Drop for MydataRc {
     fn drop(&mut self) {
         log!("~mydata() {} {}\n", self.name, self.age);
     }
 }
 
 /*******************************************
- * mydata_box
+ * MydataBox
  ******************************************/
 #[derive(Debug, Clone)]
-struct mydata_box {
+struct MydataBox {
     name: String,
     age: i32,
 }
 
-impl Drop for mydata_box {
+impl Drop for MydataBox {
     fn drop(&mut self) {
-        log!("~mydata_box() {} {}\n", self.name, self.age);
+        log!("~MydataBox() {} {}\n", self.name, self.age);
     }
 }
 
@@ -55,8 +50,9 @@ impl Drop for mydata_box {
 fn rc_test()
 {
     print!("\n------------ {} ------------\n", function!());
+    /*
     {
-        let mut x = Rc::new(mydata_rc {
+        let x = Rc::new(MydataRc {
             name: "XXX".to_string(),
             age: 18,
         });
@@ -75,11 +71,12 @@ fn rc_test()
         //let g = x.borrow_mut();
         //g.name = "YYY".to_string();               
 
-        //although clone three times from x, but only execute once of Drop for mydata_rc.
+        //although clone three times from x, but only execute once of Drop for MydataRc.
     }
+    */
 
     {
-        let x = Box::new(mydata_box {
+        let x = Box::new(MydataBox {
             name: "XXX".to_string(),
             age: 18,
         });
@@ -91,7 +88,7 @@ fn rc_test()
         y.name = "YYY".to_string();
         z.name = "ZZZ".to_string();
         
-        //clone three times from x. Drop three times for mydata_box.
+        //clone three times from x. Drop three times for MydataBox.
     }
 }
 
@@ -115,27 +112,27 @@ fn rc_cell_test()
 /*******************************************
  * rc_refcell_test
  ******************************************/
-struct mydata_refcell {
+struct MydataRefcell {
     pub name: String,
     pub age: i32,
 }
 
-impl Drop for mydata_refcell {
+impl Drop for MydataRefcell {
     fn drop(&mut self) {
-        log!("~mydata_refcell() {} {}\n", self.name, self.age);
+        log!("~MydataRefcell() {} {}\n", self.name, self.age);
     }
 }
 
-fn rc_refcell_change_age(p : Rc<RefCell<mydata_refcell>>) 
+fn rc_refcell_change_age(p : Rc<RefCell<MydataRefcell>>) 
 {
     let mut p2 = p.borrow_mut();
     p2.age = 200;
 }
 
-fn rc_refcell_change_reference(p : Rc<RefCell<mydata_refcell>>) 
+fn rc_refcell_change_reference(p : Rc<RefCell<MydataRefcell>>) 
 {
     let mut p2 = p.borrow_mut();
-    *p2 = mydata_refcell {
+    *p2 = MydataRefcell {
         name: "XXXXX".to_string(),
         age: 100,
      };
@@ -149,18 +146,18 @@ fn rc_refcell_test()
 {
     print!("\n------------ {}1 ------------\n", function!());
     {
-        let mut p = Rc::new(RefCell::new(
-            mydata_refcell {
+        let p = Rc::new(RefCell::new(
+            MydataRefcell {
                 name: "ABCDEFG".to_string(),
                 age: 99,
         }));
 
-        //alloc::rc::Rc<core::cell::RefCell<others::rc_::mydata_refcell>>
+        //alloc::rc::Rc<core::cell::RefCell<others::rc_::MydataRefcell>>
         log!("p type_of: {}\n", type_of(&p));
 
         //try to change name
         {
-            //core::cell::RefMut<others::rc_::mydata_refcell>
+            //core::cell::RefMut<others::rc_::MydataRefcell>
             let mut p2 = p.borrow_mut();
             log!("p2 type_of: {} \n", type_of(&p2));
             p2.name = "GDEFGH".to_string();
@@ -177,8 +174,8 @@ fn rc_refcell_test()
 
         log!("p.age:{}\n", p.borrow().age);
 
-        //try to replace new mydata_refcell instance. 
-        //the previous 'mydata_refcell() GDEFGH 200' will done before new mydata_refcell instance created.
+        //try to replace new MydataRefcell instance. 
+        //the previous 'MydataRefcell() GDEFGH 200' will done before new MydataRefcell instance created.
         {
             rc_refcell_change_reference(p.clone());
         }

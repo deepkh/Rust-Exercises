@@ -1,12 +1,6 @@
 use libhelper::*;
 use libhelper::helper::type_of;
-use crate::ErrStack;
-use std::fs::File;
-use std::io;
-use std::io::{Error,ErrorKind};
-use std::io::prelude::*;
 use std::rc::Rc;
-use std::cell::Cell;
 use std::cell::RefCell;
 use std::sync::{Mutex, Arc, Condvar, MutexGuard, LockResult, WaitTimeoutResult};
 use std::thread;
@@ -14,7 +8,6 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use std::time::Duration;
 use std::collections::HashMap;
-use std::any::Any;
 
 pub fn test()  {
     print!("\n------------ {} ------------\n", function!());
@@ -191,7 +184,7 @@ pub fn test()  {
                 let (req_send, req_recv): (Sender<MessageData>, Receiver<MessageData>) = mpsc::channel();
 
                 let thread = thread::spawn(move || {
-                    for x in 0..10 {
+                    for _ in 0..10 {
                         let msg = req_recv.recv().unwrap();
                         print!("recv req {}\n", msg.data);
                         print!("send rep {}\n", msg.data);
@@ -205,13 +198,13 @@ pub fn test()  {
                 }
             }
 
-            pub fn PostMessage(&self, msg: MessageData) {
-                self.req_send.send(msg);
+            pub fn post_message(&self, msg: MessageData) {
+                self.req_send.send(msg).unwrap();
             }
 
-            pub fn PostMessageAndReply(&self, msg: i32) -> i32 {
+            pub fn post_message_and_reply(&self, msg: i32) -> i32 {
                 let (rep_send, rep_recv): (Sender<i32>, Receiver<i32>) = mpsc::channel();
-                self.PostMessage(MessageData::new(rep_send, msg));
+                self.post_message(MessageData::new(rep_send, msg));
                 rep_recv.recv().unwrap()
             }
         }
@@ -229,7 +222,7 @@ pub fn test()  {
         
         for x in 0..10 {
             print!("send req {}\n", x);
-            let n = mq.PostMessageAndReply(x);
+            let n = mq.post_message_and_reply(x);
             print!("recv resp {}\n", n);
         }
     }
@@ -247,7 +240,7 @@ pub fn test()  {
                 }
             }
 
-            pub fn DoB(&mut self) {
+            pub fn do_b(&mut self) {
                 self.data = self.data + 100;
                 print!("DoB() {}\n", self.data);
             }
@@ -265,18 +258,18 @@ pub fn test()  {
                 }
             }
 
-            pub fn DoA(&mut self) {
+            pub fn do_a(&mut self) {
                 if self.b.is_some() {
-                    self.b.as_mut().unwrap().DoB();
+                    self.b.as_mut().unwrap().do_b();
                 }
             }
         };
 
         let mut a: A = A::new(123);
-        a.DoA();
-        a.DoA();
-        a.DoA();
-        a.DoA();
+        a.do_a();
+        a.do_a();
+        a.do_a();
+        a.do_a();
     }
 
     print!("\n");
@@ -298,19 +291,19 @@ pub fn test()  {
                 }
             }
 
-            pub fn Lock(&self) -> MutexGuard<Vec<String>> {
+            pub fn lock(&self) -> MutexGuard<Vec<String>> {
                 return self.mutex.lock().unwrap();
             }
             
-            pub fn NotifyOne(&self) {
+            pub fn notify_one(&self) {
                 self.cond.notify_one();
             }
 
-            pub fn Wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
+            pub fn wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
                 return self.cond.wait(started);
             }
             
-            pub fn WaitTimeout<'a, T>(&self, started: MutexGuard<'a, T>, dur: Duration) 
+            pub fn wait_timeout<'a, T>(&self, started: MutexGuard<'a, T>, dur: Duration) 
                 -> LockResult<(MutexGuard<'a, T>, WaitTimeoutResult)> {
                 return self.cond.wait_timeout(started, dur);
             }
@@ -328,84 +321,84 @@ pub fn test()  {
                 }
             }
 
-            pub fn Lock(&self) -> MutexGuard<Vec<String>> {
-                return self.inner.Lock();
+            pub fn lock(&self) -> MutexGuard<Vec<String>> {
+                return self.inner.lock();
             }
 
-            pub fn NotifyOne(&self) {
-                self.inner.NotifyOne();
+            pub fn notify_one(&self) {
+                self.inner.notify_one();
             }
 
-            pub fn Wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
-                return self.inner.Wait(started);
+            pub fn wait<'a, T>(&self, started: MutexGuard<'a, T>) -> LockResult<MutexGuard<'a, T>> {
+                return self.inner.wait(started);
             }
             
-            pub fn WaitTimeout<'a, T>(&self, started: MutexGuard<'a, T>, dur: Duration) 
+            pub fn wait_timeout<'a, T>(&self, started: MutexGuard<'a, T>, dur: Duration) 
                 -> LockResult<(MutexGuard<'a, T>, WaitTimeoutResult)> {
-                return self.inner.WaitTimeout(started, dur);
+                return self.inner.wait_timeout(started, dur);
             }
         };
 
-        let mut mcond = MutexCond::new();
-        let mut mcond2 = mcond.clone();
+        let  mcond = MutexCond::new();
+        let  mcond2 = mcond.clone();
 
         thread::spawn(move|| {
             thread::sleep(Duration::from_millis(50));
             print!("thd 1 ready to lock\n");
             {
-                let mut vec = mcond2.Lock();
+                let mut vec = mcond2.lock();
                 (*vec).push("AAAA".to_string());
                 (*vec).push("BBB".to_string());
                 (*vec).push("CCC".to_string());
                 print!("thd1 ready to notify_one\n");
-                mcond2.NotifyOne();
+                mcond2.notify_one();
             }
             
             thread::sleep(Duration::from_millis(200));
             print!("thd 2 ready to lock\n");
             {
-                let mut vec = mcond2.Lock();
+                let mut vec = mcond2.lock();
                 (*vec).push("DDD".to_string());
                 (*vec).push("EEE".to_string());
                 (*vec).push("FFF".to_string());
                 print!("thd1 ready to notify_one 2\n");
-                mcond2.NotifyOne();
+                mcond2.notify_one();
             }
 
 
             for i in 3..6 {
                 print!("thd 3 ready to lock {}\n", i);
-                let mut vec = mcond2.Lock();
+                let mut vec = mcond2.lock();
                 (*vec).push("GGG".to_string());
                 (*vec).push("HHH".to_string());
                 (*vec).push("III".to_string());
                 print!("thd 3 ready to notify_one {}\n", i);
-                mcond2.NotifyOne();
+                mcond2.notify_one();
             }
             print!("thd  done\n");
         });
 
         {
             print!("main 1 ready to lock\n");
-            let mut vec = mcond.Lock();
+            let mut vec = mcond.lock();
             print!("main 1 *ret:{:?} type_of:{} A\n", *vec, type_of(&*vec));
             //*vec:[] type_of:alloc::vec::Vec<alloc::string::String>
-            vec = mcond.Wait(vec).unwrap();
+            vec = mcond.wait(vec).unwrap();
             print!("main 1 *ret:{:?} type_of:{} B\n", *vec, type_of(&*vec));
             //*ret:["AAAA", "BBB", "CCC"] type_of:alloc::vec::Vec<alloc::string::String>
         }
         
         {
             print!("main 2 ready to lock\n");
-            let mut vec = mcond.Lock();
-            vec = mcond.Wait(vec).unwrap();
+            let mut vec = mcond.lock();
+            vec = mcond.wait(vec).unwrap();
             print!("main 2 *vec:{:?} type_of:{}\n", *vec, type_of(&*vec));
         }
 
-        while true {
+        loop {
             print!("main 3 ready to lock with timeout\n");
-            let mut vec = mcond.Lock();
-            let mut ret = mcond.WaitTimeout(vec, Duration::from_millis(500)).unwrap();
+            let vec = mcond.lock();
+            let ret = mcond.wait_timeout(vec, Duration::from_millis(500)).unwrap();
             if ret.1.timed_out() {
                 print!("main 3 wait 3 is timeout\n");
                 break;

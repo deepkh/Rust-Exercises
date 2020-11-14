@@ -1,6 +1,5 @@
 pub mod message_queue;
 pub mod test;
-use libhelper::*;
 
 #[no_mangle]
 pub extern fn rust_function_b() {
