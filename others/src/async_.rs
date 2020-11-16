@@ -6,52 +6,134 @@ use futures::executor::block_on;
 pub fn test()  {
     print!("\n------------ {} ------------\n", function!());
 
+    /* case 1 & 2 bave same execution order
+[others::async_::test::bc::{{closure}}] 1
+[others::async_::test::b::{{closure}}]
+[others::async_::test::c::{{closure}}]
+[others::async_::test::bc::{{closure}}] 2
+[others::async_::test::d::{{closure}}]
+[others::async_::test::a::{{closure}}] done
+    */
     print!("\n1\n");
     {
-        async fn learn_song() { 
+        async fn b() { 
             for _ in 1..10000000 {
             }
             log!("\n");
         }
-        async fn sing_song() { 
+        async fn c() { 
             for _ in 1..10 {
             }
             log!("\n");
         }
-        async fn dance() { 
+        async fn d() { 
             for _ in 1..1 {
             }
             log!("\n");
         }
 
-        async fn learn_and_sing() {
-            // Wait until the song has been learned before singing it.
-            // We use `.await` here rather than `block_on` to prevent blocking the
-            // thread, which makes it possible to `dance` at the same time.
+        async fn bc() {
             log!("1\n");
-            let f1 = learn_song();
-            let f2 = sing_song();
-            //let r1 = f1.await;
-            //let r2 = f2.await;
+            let f1 = b();
+            let f2 = c();
             futures::join!(f1, f2);
             log!("2\n");
         }
 
-        async fn async_main() {
-            let f1 = learn_and_sing();
-            let f2 = dance();
-
-            // `join!` is like `.await` but can wait for multiple futures concurrently.
-            // If we're temporarily blocked in the `learn_and_sing` future, the `dance`
-            // future will take over the current thread. If `dance` becomes blocked,
-            // `learn_and_sing` can take back over. If both futures are blocked, then
-            // `async_main` is blocked and will yield to the executor.
+        async fn a() {
+            let f1 = bc();
+            let f2 = d();
             futures::join!(f1, f2);
             log!("done\n");
         }
 
-        block_on(async_main());
+        block_on(a());
     }
+
+    print!("\n2\n");
+    {
+        fn b() { 
+            for _ in 1..10000000 {
+            }
+            log!("\n");
+        }
+        fn c() { 
+            for _ in 1..10 {
+            }
+            log!("\n");
+        }
+        async fn d() { 
+            for _ in 1..1 {
+            }
+            log!("\n");
+        }
+
+        async fn bc() {
+            log!("1\n");
+            b();
+            c();
+            log!("2\n");
+        }
+
+        async fn a() {
+            let f1 = bc();
+            let f2 = d();
+            futures::join!(f1, f2);
+            log!("done\n");
+        }
+
+        block_on(a());
+    }
+
+
+
+    /*
+[others::async_::test::bc::{{closure}}] 1
+[others::async_::test::bc::{{closure}}] 2
+[others::async_::test::d::{{closure}}]
+[others::async_::test::a::{{closure}}] done
+[others::async_::test] done
+    */
+    print!("\n3\n");
+    {
+        async fn b() { 
+            for _ in 1..10000000 {
+            }
+            log!("\n");
+        }
+        async fn c() { 
+            for _ in 1..10 {
+            }
+            log!("\n");
+        }
+        async fn d() { 
+            for _ in 1..1 {
+            }
+            log!("\n");
+        }
+
+        /*
+         * if no await b() & c() inner bc(), it look like
+         * b() & c() will never print its log after a() is done
+         */
+        async fn bc() {
+            log!("1\n");
+            b();
+            c();
+            log!("2\n");
+        }
+
+        async fn a() {
+            let f1 = bc();
+            let f2 = d();
+            futures::join!(f1, f2);
+            log!("done\n");
+        }
+
+        block_on(a());
+    }
+
+
 
     log!("done");
 }
