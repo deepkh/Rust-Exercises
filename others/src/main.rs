@@ -12,7 +12,8 @@ mod rc2;
 mod mutex_guard_;
 mod channel_;
 mod json;
-mod async_;
+mod tokio_;
+mod tokio_2;
 //use msgq::message_queue::*;
 //use msgq::test::*;
 
@@ -20,7 +21,6 @@ use traits::*;
 
 fn main() {
     print!("\n------------ {}1 ------------\n", function!());
-
 
     libhelper::rust_function_a();
     libhelper::log!("XXXX\n");
@@ -88,7 +88,10 @@ fn main() {
     //** json::test() */
     crate::json::test();
     
-    //** async () */
-    crate::async_::test();
+    //** tokio_ */
+    crate::tokio_::test();
+    
+    //** tokio_2 */
+    crate::tokio_2::test();
     print!("\n------------ {} done ------------\n", function!());
 }
