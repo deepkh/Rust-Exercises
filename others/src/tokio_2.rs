@@ -81,6 +81,7 @@ pub async fn test() {
     loop {
         let (res, idx, remaining_futures) = select_all(fs).await;
         fs = remaining_futures;
+        print!("res:{:?} idx:{:?}\n", res, idx);
 
         if fs.len() == 0 {
             break;

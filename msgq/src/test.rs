@@ -66,54 +66,37 @@ impl Message for WorldMessage {
     }
 }
 
-
-/**
- *  TestMessageHandler
- **/
-struct TestMessageHandler {
-}
-
-impl TestMessageHandler {
-    pub fn new() -> Self {
-        Self {
-        }
+pub fn test_message_handler(option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
+    if option_box_msg.is_none() {
+        return false;
     }
-}
 
-impl MessageHandler for TestMessageHandler {
-    fn on_message(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
-        if option_box_msg.is_none() {
-            return false;
-        }
+    let box_msg = option_box_msg.unwrap();
+    print!("box_msg type_of:{} \n", type_of(&box_msg));
+    //Box<dyn others::channel_::test::Message+core::marker::Send>
 
-        let box_msg = option_box_msg.unwrap();
-        print!("box_msg type_of:{} \n", type_of(&box_msg));
-        //Box<dyn others::channel_::test::Message+core::marker::Send>
+    if let Some(hello_msg) = box_msg.as_ref().as_any().downcast_ref::<HelloMessage>() {
+        print!("hello_msg type_of:{} \n", type_of(&hello_msg));
+        //Option<&others::channel_::test::TestMessage>
 
-        if let Some(hello_msg) = box_msg.as_ref().as_any().downcast_ref::<HelloMessage>() {
-            print!("hello_msg type_of:{} \n", type_of(&hello_msg));
-            //Option<&others::channel_::test::TestMessage>
+        //do some HelloMessage only function
+        hello_msg.do_hello_message_only_function();
+    } else if let Some(world_msg) = box_msg.as_ref().as_any().downcast_ref::<WorldMessage>() {
+        print!("world_msg type_of:{} \n", type_of(&world_msg));
+        //Option<&others::channel_::test::TestMessage>
 
-            //do some HelloMessage only function
-            hello_msg.do_hello_message_only_function();
-        } else if let Some(world_msg) = box_msg.as_ref().as_any().downcast_ref::<WorldMessage>() {
-            print!("world_msg type_of:{} \n", type_of(&world_msg));
-            //Option<&others::channel_::test::TestMessage>
-
-            //do some WorldMessage only function
-            world_msg.do_world_message_only_function();
-        }
-        print!("\n");
-        return true;
+        //do some WorldMessage only function
+        world_msg.do_world_message_only_function();
     }
+    print!("\n");
+    return true;
 }
-
 
 pub fn test_message_queue() {
     print!("===== single thread \n");
     //single thread version
-    let test_handler = Arc::new(TestMessageHandler::new());
-    let message_queue = Arc::new(MessageQueue::new());
+    let test_handler = Arc::new(test_message_handler);
+    let message_queue = Arc::new(MessageQueueBlock::new());
     message_queue.register_message_handler(1, test_handler);
 
     //single thread version
@@ -128,8 +111,8 @@ pub fn test_message_queue() {
 
 
     print!("===== multi thread \n");
-    let test_handler = Arc::new(TestMessageHandler::new());
-    let message_queue = Arc::new(MessageQueue::new());
+    let test_handler = Arc::new(test_message_handler);
+    let message_queue = Arc::new(MessageQueueBlock::new());
     message_queue.register_message_handler(1, test_handler);
 
     let mut message_thread = MessageThread::new(message_queue.clone());

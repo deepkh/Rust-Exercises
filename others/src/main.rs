@@ -84,7 +84,8 @@ fn main() {
 
     //** msgq::test::TestMessageQueue() */
     msgq::test::test_message_queue();
-    
+   
+    /*
     //** json::test() */
     crate::json::test();
     
@@ -93,5 +94,6 @@ fn main() {
     
     //** tokio_2 */
     crate::tokio_2::test();
+    */
     print!("\n------------ {} done ------------\n", function!());
 }

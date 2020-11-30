@@ -15,13 +15,6 @@ pub trait Message {
 }
 
 /**
- *  MessageHandler
- **/
-pub trait MessageHandler {
-    fn on_message(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool;
-}
-
-/**
  *  MessageQueueVector
  **/
 pub struct MessageQueueVector {
@@ -73,7 +66,7 @@ impl MessageQueueVector {
  *  MessageQueueHandlers
  **/
 pub struct MessageQueueHandlers {
-    handlers_mutex: Mutex<HashMap<i32, Arc<dyn MessageHandler + Send + Sync>>>,
+    handlers_mutex: Mutex<HashMap<i32, Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>>>,
 }
 
 impl MessageQueueHandlers {
@@ -83,7 +76,7 @@ impl MessageQueueHandlers {
         }
     }
 
-    pub fn register_message_handler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
+    pub fn register_message_handler(&self, handler_id: i32, handler: Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>) {
         let mut handlers_hash = self.handlers_mutex.lock().unwrap();
         let old_handler = handlers_hash.get(&handler_id);
         if !old_handler.is_none() {
@@ -97,50 +90,59 @@ impl MessageQueueHandlers {
     pub fn dispatch_message(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
         let handlers_hash = self.handlers_mutex.lock().unwrap();
         if let Some(handler) = handlers_hash.get(&option_box_msg.as_ref().unwrap().handler_id()) {
-            return handler.on_message(option_box_msg);
+            return handler(option_box_msg);
         }
         false
     }
 }
 
+pub trait MessageQueue {
+    fn get_message(&self) -> Option<Box<dyn Message + Send>>;
+    fn get_message_timeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>>;
+    fn post_message(&self, message_option: Option<Box<dyn Message + Send>>);
+    fn register_message_handler(&self, handler_id: i32, handler: Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>);
+    fn process_next_message(&self) -> bool;
+}
 
 
 /**
  *  MessageQueue
  **/
 #[derive(Clone)]
-pub struct MessageQueue {
+pub struct MessageQueueBlock {
     //why need double arc in parent and here
     //this because the parent arc.clone() need child also support clone()
     message_queue_vector: Arc<MessageQueueVector>,
     message_queue_handlers: Arc<MessageQueueHandlers>,
 }
 
-impl MessageQueue {
+impl MessageQueueBlock {
     pub fn new() -> Self {
         Self {
             message_queue_vector: Arc::new(MessageQueueVector::new()),
             message_queue_handlers: Arc::new(MessageQueueHandlers::new()),
         }
     }
+}
 
-    pub fn get_message(&self) -> Option<Box<dyn Message + Send>> {
+impl MessageQueue for MessageQueueBlock {
+    fn get_message(&self) -> Option<Box<dyn Message + Send>> {
         self.message_queue_vector.get_message()
     }
 
-    pub fn get_message_timeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>> {
+    fn get_message_timeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>> {
         self.message_queue_vector.get_message_timeout(duration)
     }
 
-    pub fn post_message(&self, message_option: Option<Box<dyn Message + Send>>) {
+    fn post_message(&self, message_option: Option<Box<dyn Message + Send>>) {
         self.message_queue_vector.post_message(message_option);
     }
 
-    pub fn register_message_handler(&self, handler_id: i32, handler: Arc<dyn MessageHandler + Send + Sync>) {
+    fn register_message_handler(&self, handler_id: i32, handler: Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>) {
         self.message_queue_handlers.register_message_handler(handler_id, handler);
     }
 
-    pub fn process_next_message(&self) -> bool {
+    fn process_next_message(&self) -> bool {
         let message_option = self.get_message();
         if message_option.is_some()  {
             return self.message_queue_handlers.dispatch_message(message_option);
@@ -154,12 +156,12 @@ impl MessageQueue {
  *  MessageThread
  **/
 pub struct MessageThread {
-    message_queue: Arc<MessageQueue>,
+    message_queue: Arc<dyn MessageQueue + Send + Sync>,
     thread: Option<thread::JoinHandle<()>>, 
 }
 
 impl MessageThread {
-    pub fn new(message_queue: Arc<MessageQueue>) -> Self {
+    pub fn new(message_queue: Arc<dyn MessageQueue + Send + Sync>) -> Self {
         Self {
             message_queue,
             thread: None,
