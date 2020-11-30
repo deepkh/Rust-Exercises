@@ -91,11 +91,9 @@ impl MessageQueueHandler {
 
 
 pub trait MessageQueue {
-    fn get_message(&self) -> Option<Box<dyn Message + Send>>;
-    fn get_message_timeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>>;
     fn post_message(&self, message_option: Option<Box<dyn Message + Send>>);
     fn set_message_handler(&self, handler: Box<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>);
-    fn process_next_message(&self) -> bool;
+    fn process_message(&self) -> bool;
 }
 
 /**
@@ -119,14 +117,6 @@ impl MessageQueueBlock {
 }
 
 impl MessageQueue for MessageQueueBlock {
-    fn get_message(&self) -> Option<Box<dyn Message + Send>> {
-        self.message_queue_vector.get_message()
-    }
-
-    fn get_message_timeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>> {
-        self.message_queue_vector.get_message_timeout(duration)
-    }
-
     fn post_message(&self, message_option: Option<Box<dyn Message + Send>>) {
         self.message_queue_vector.post_message(message_option);
     }
@@ -135,8 +125,8 @@ impl MessageQueue for MessageQueueBlock {
         self.message_queue_handlers.set_message_handler(handler);
     }
 
-    fn process_next_message(&self) -> bool {
-        let message_option = self.get_message();
+    fn process_message(&self) -> bool {
+        let message_option = self.message_queue_vector.get_message();
         if message_option.is_some()  {
             return self.message_queue_handlers.dispatch_message(message_option);
         }
@@ -168,7 +158,7 @@ impl MessageThread {
 
         let message_queue = self.message_queue.clone();
         let thread = thread::spawn(move || {
-            while message_queue.process_next_message() {
+            while message_queue.process_message() {
                 
             }
             print!("MessageThread done\n");

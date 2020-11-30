@@ -93,14 +93,13 @@ pub fn test_message_queue() {
         } else {
             message_queue.post_message(Some(Box::new(WorldMessage::new("WOOOOOOOORLD".to_string()))));
         }
-        message_queue.process_next_message();
+        message_queue.process_message();
     }
 
 
-    /*
     print!("===== multi thread \n");
     let message_queue = Arc::new(MessageQueueBlock::new());
-    message_queue.set_message_handler(Arc::new(test_message_handler));
+    message_queue.set_message_handler(Box::new(test_message_handler));
 
     let mut message_thread = MessageThread::new(message_queue.clone());
     message_thread.start();
@@ -113,6 +112,5 @@ pub fn test_message_queue() {
             message_queue.post_message(Some(Box::new(WorldMessage::new("WOOOOOOOORLD".to_string()))));
         }
     }
-    */
 }
 
