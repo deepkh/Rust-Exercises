@@ -65,7 +65,7 @@ impl MessageQueueVector {
  *  MessageQueueHandlers
  **/
 pub struct MessageQueueHandler {
-    handler_mutex: Mutex<Option<Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>>>,
+    handler_mutex: Mutex<Option<Box<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>>>,
 }
 
 impl MessageQueueHandler {
@@ -75,7 +75,7 @@ impl MessageQueueHandler {
         }
     }
 
-    pub fn set_message_handler(&self, handler: Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>) {
+    pub fn set_message_handler(&self, handler: Box<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>) {
         let mut handler_option = self.handler_mutex.lock().unwrap();
         *handler_option = Some(handler);
     }
@@ -94,7 +94,7 @@ pub trait MessageQueue {
     fn get_message(&self) -> Option<Box<dyn Message + Send>>;
     fn get_message_timeout(&self, duration: Duration) -> Option<Box<dyn Message + Send>>;
     fn post_message(&self, message_option: Option<Box<dyn Message + Send>>);
-    fn set_message_handler(&self, handler: Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>);
+    fn set_message_handler(&self, handler: Box<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>);
     fn process_next_message(&self) -> bool;
 }
 
@@ -131,7 +131,7 @@ impl MessageQueue for MessageQueueBlock {
         self.message_queue_vector.post_message(message_option);
     }
     
-    fn set_message_handler(&self, handler: Arc<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>) {
+    fn set_message_handler(&self, handler: Box<dyn Fn(Option<Box<dyn Message + Send>>) -> bool  + Send + Sync>) {
         self.message_queue_handlers.set_message_handler(handler);
     }
 
