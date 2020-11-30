@@ -8,28 +8,22 @@ use crate::message_queue::*;
  *  HelloMessage
  **/
 struct HelloMessage {
-    handler_id: i32,
     test: String,
 }
 
 impl HelloMessage {
-    pub fn new(handler_id: i32, test: String) -> Self {
+    pub fn new(test: String) -> Self {
         Self {
-            handler_id,
             test,
         }
     }
 
     pub fn do_hello_message_only_function(&self) {
-        print!("HelloMessage::do_hello_message_only_function() handler_id:{} test:{}\n", self.handler_id, self.test);
+        print!("HelloMessage::do_hello_message_only_function() test:{}\n", self.test);
     }
 }
 
 impl Message for HelloMessage {
-    fn handler_id(&self) -> i32 {
-        self.handler_id
-    }
-
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -39,28 +33,22 @@ impl Message for HelloMessage {
  *  WorldMessage
  **/
 struct WorldMessage {
-    handler_id: i32,
     test: String,
 }
 
 impl WorldMessage {
-    pub fn new(handler_id: i32, test: String) -> Self {
+    pub fn new(test: String) -> Self {
         Self {
-            handler_id,
             test,
         }
     }
 
     pub fn do_world_message_only_function(&self) {
-        print!("WorldMessage::do_world_message_only_function() handler_id:{} test:{}\n", self.handler_id, self.test);
+        print!("WorldMessage::do_world_message_only_function() test:{}\n", self.test);
     }
 }
 
 impl Message for WorldMessage {
-    fn handler_id(&self) -> i32 {
-        self.handler_id
-    }
-
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -95,25 +83,23 @@ pub fn test_message_handler(option_box_msg: Option<Box<dyn Message + Send>>) -> 
 pub fn test_message_queue() {
     print!("===== single thread \n");
     //single thread version
-    let test_handler = Arc::new(test_message_handler);
     let message_queue = Arc::new(MessageQueueBlock::new());
-    message_queue.register_message_handler(1, test_handler);
+    message_queue.set_message_handler(Arc::new(test_message_handler));
 
     //single thread version
     for i in 0..10 {
         if i%2 == 0 {
-            message_queue.post_message(Some(Box::new(HelloMessage::new(1, "HEEEEEEEELLO".to_string()))));
+            message_queue.post_message(Some(Box::new(HelloMessage::new("HEEEEEEEELLO".to_string()))));
         } else {
-            message_queue.post_message(Some(Box::new(WorldMessage::new(1, "WOOOOOOOORLD".to_string()))));
+            message_queue.post_message(Some(Box::new(WorldMessage::new("WOOOOOOOORLD".to_string()))));
         }
         message_queue.process_next_message();
     }
 
 
     print!("===== multi thread \n");
-    let test_handler = Arc::new(test_message_handler);
     let message_queue = Arc::new(MessageQueueBlock::new());
-    message_queue.register_message_handler(1, test_handler);
+    message_queue.set_message_handler(Arc::new(test_message_handler));
 
     let mut message_thread = MessageThread::new(message_queue.clone());
     message_thread.start();
@@ -121,9 +107,9 @@ pub fn test_message_queue() {
     //thread version
     for i in 0..10 {
         if i%2 == 0 {
-            message_queue.post_message(Some(Box::new(HelloMessage::new(1, "HEEEEEEEELLO".to_string()))));
+            message_queue.post_message(Some(Box::new(HelloMessage::new("HEEEEEEEELLO".to_string()))));
         } else {
-            message_queue.post_message(Some(Box::new(WorldMessage::new(1, "WOOOOOOOORLD".to_string()))));
+            message_queue.post_message(Some(Box::new(WorldMessage::new("WOOOOOOOORLD".to_string()))));
         }
     }
 }
