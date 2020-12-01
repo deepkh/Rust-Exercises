@@ -96,8 +96,16 @@ impl MessageQueueHandlers {
 
     pub fn dispatch_message(&self, option_box_msg: Option<Box<dyn Message + Send>>) -> bool {
         let handlers_hash = self.handlers_mutex.lock().unwrap();
-        if let Some(handler) = handlers_hash.get(&option_box_msg.as_ref().unwrap().handler_id()) {
-            return handler.on_message(option_box_msg);
+        let handler_id = option_box_msg.as_ref().unwrap().handler_id();
+        if handler_id < 0 {
+            let handlers_key_value_option = handlers_hash.iter().next();
+            if let Some(handler) = handlers_key_value_option {
+                return handler.1.on_message(option_box_msg);
+            }
+        } else {
+            if let Some(handler) = handlers_hash.get(&option_box_msg.as_ref().unwrap().handler_id()) {
+                return handler.on_message(option_box_msg);
+            }
         }
         false
     }

@@ -13,7 +13,14 @@ struct HelloMessage {
 }
 
 impl HelloMessage {
-    pub fn new(handler_id: i32, test: String) -> Self {
+    pub fn new(test: String) -> Self {
+        Self {
+            handler_id: -1,
+            test,
+        }
+    }
+
+    pub fn new_with_id(handler_id: i32, test: String) -> Self {
         Self {
             handler_id,
             test,
@@ -44,7 +51,14 @@ struct WorldMessage {
 }
 
 impl WorldMessage {
-    pub fn new(handler_id: i32, test: String) -> Self {
+    pub fn new(test: String) -> Self {
+        Self {
+            handler_id: -1,
+            test,
+        }
+    }
+
+    pub fn new_with_id(handler_id: i32, test: String) -> Self {
         Self {
             handler_id,
             test,
@@ -119,9 +133,9 @@ pub fn test_message_queue() {
     //single thread version
     for i in 0..10 {
         if i%2 == 0 {
-            message_queue.post_message(Some(Box::new(HelloMessage::new(1, "HEEEEEEEELLO".to_string()))));
+            message_queue.post_message(Some(Box::new(HelloMessage::new("HEEEEEEEELLO".to_string()))));
         } else {
-            message_queue.post_message(Some(Box::new(WorldMessage::new(1, "WOOOOOOOORLD".to_string()))));
+            message_queue.post_message(Some(Box::new(WorldMessage::new("WOOOOOOOORLD".to_string()))));
         }
         message_queue.process_next_message();
     }
@@ -138,9 +152,9 @@ pub fn test_message_queue() {
     //thread version
     for i in 0..10 {
         if i%2 == 0 {
-            message_queue.post_message(Some(Box::new(HelloMessage::new(1, "HEEEEEEEELLO".to_string()))));
+            message_queue.post_message(Some(Box::new(HelloMessage::new("HEEEEEEEELLO".to_string()))));
         } else {
-            message_queue.post_message(Some(Box::new(WorldMessage::new(1, "WOOOOOOOORLD".to_string()))));
+            message_queue.post_message(Some(Box::new(WorldMessage::new("WOOOOOOOORLD".to_string()))));
         }
     }
 }
